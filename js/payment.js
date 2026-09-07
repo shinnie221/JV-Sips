@@ -7,7 +7,7 @@
 import { cart } from './cart.js';
 import { addSale } from './db.js';
 import { formatRM, generateSaleId, toDateInputValue, toMonthInputValue, showToast } from './utils.js';
-import { isManagerAuthenticated } from './auth.js';
+import { isStaffLoggedIn } from './auth.js';
 
 let currentPaymentMethod = 'cash'; // 'cash' | 'qr'
 let isProcessingPayment = false;
@@ -201,10 +201,10 @@ async function handleConfirmPayment() {
     createdAt: now.toISOString()
   };
 
-  const isManager = isManagerAuthenticated();
+  const isStaff = isStaffLoggedIn();
 
   try {
-    if (isManager) {
+    if (isStaff) {
       // Official Store Sale: Persist to Firebase and Business Reports
       await addSale(salePayload);
       showToast('Payment Successful! Sale recorded in official reports.', 'success', 4000);
@@ -215,7 +215,7 @@ async function handleConfirmPayment() {
 
     // Show Success Modal
     closePaymentModal();
-    displayReceiptModal(salePayload, isManager);
+    displayReceiptModal(salePayload, isStaff);
 
     // Clear cart state
     cart.clear();

@@ -55,6 +55,19 @@ export function isStaffLoggedIn() {
   return Boolean(currentStaffUser);
 }
 
+// Alias for compatibility
+export function isManagerAuthenticated() {
+  return isStaffLoggedIn();
+}
+
+export function requireManagerAuth(onSuccess) {
+  if (isStaffLoggedIn()) {
+    if (typeof onSuccess === 'function') onSuccess();
+  } else {
+    openStaffLoginModal();
+  }
+}
+
 /**
  * Get current staff user object or null
  */
