@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jv-sips-v10';
+const CACHE_NAME = 'jv-sips-v11';
 
 const STATIC_ASSETS = [
   '/',

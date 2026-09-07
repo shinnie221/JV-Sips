@@ -205,12 +205,13 @@ async function handleConfirmPayment() {
 
   try {
     if (isStaff) {
-      // Official Store Sale: Persist to Firebase and Business Reports
+      // Official Store Sale: Persist to Firebase and Official Business Reports
       await addSale(salePayload);
       showToast('Payment Successful! Sale recorded in official reports.', 'success', 4000);
     } else {
-      // Guest Demo Mode: Simulation only, does not affect official reports
-      showToast('Demo Payment Successful! (Guest Mode: Simulated sale not added to business reports)', 'info', 4000);
+      // Guest Demo Mode: Save to local sandbox reports
+      await addSale(salePayload);
+      showToast('Demo Checkout Complete! Saved to Guest Sandbox Reports.', 'info', 4000);
     }
 
     // Show Success Modal
