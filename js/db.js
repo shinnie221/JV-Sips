@@ -88,48 +88,42 @@ export function updateHeaderStatus(isOnline) {
 // --------------------------------------------------------------------------
 
 export async function getProducts(activeOnly = false) {
-  await initDatabase();
-
-  // If staff is logged in and Firestore is connected, fetch from Live Cloud
-  if (isStaffLoggedIn() && isFirestoreReady) {
-    try {
-      const { collection, getDocs, query, where } = firestoreModules;
-      const colRef = collection(db, 'products');
-      let q = colRef;
-      if (activeOnly) {
-        q = query(colRef, where('active', '==', true));
+  // If staff is logged in, fetch from Live Cloud Firestore
+  if (isStaffLoggedIn()) {
+    await initDatabase();
+    if (isFirestoreReady) {
+      try {
+        const { collection, getDocs, query, where } = firestoreModules;
+        const colRef = collection(db, 'products');
+        let q = colRef;
+        if (activeOnly) {
+          q = query(colRef, where('active', '==', true));
+        }
+        const snapshot = await getDocs(q);
+        const list = [];
+        snapshot.forEach(docSnap => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        if (list.length > 0) {
+          return sortProductsByCategory(list);
+        }
+        // If Firestore is empty on first staff run, seed and return
+        await seedInitialMenu(false);
+        const newSnap = await getDocs(q);
+        const seededList = [];
+        newSnap.forEach(docSnap => {
+          seededList.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        return sortProductsByCategory(seededList);
+      } catch (err) {
+        console.error('Firestore getProducts error (falling back to guest sandbox):', err);
+        return getGuestSandboxProducts(activeOnly);
       }
-      const snapshot = await getDocs(q);
-      const list = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      return sortProductsByCategory(list);
-    } catch (err) {
-      console.error('Firestore getProducts error (falling back to guest sandbox):', err);
-      return getGuestSandboxProducts(activeOnly);
     }
-  } else if (isFirestoreReady) {
-    // If guest mode, try fetching public catalog from Firestore for reading, or fall back to sandbox
-    try {
-      const { collection, getDocs, query, where } = firestoreModules;
-      const colRef = collection(db, 'products');
-      let q = activeOnly ? query(colRef, where('active', '==', true)) : colRef;
-      const snapshot = await getDocs(q);
-      const list = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      if (list.length > 0) {
-        return sortProductsByCategory(list);
-      }
-      return getGuestSandboxProducts(activeOnly);
-    } catch (err) {
-      return getGuestSandboxProducts(activeOnly);
-    }
-  } else {
-    return getGuestSandboxProducts(activeOnly);
   }
+
+  // Default for all guests & visitors: Instant Local Sandbox (0 delay, 100% reliable)
+  return getGuestSandboxProducts(activeOnly);
 }
 
 export async function addProduct(productData) {
