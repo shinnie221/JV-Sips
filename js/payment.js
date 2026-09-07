@@ -7,6 +7,7 @@
 import { cart } from './cart.js';
 import { addSale } from './db.js';
 import { formatRM, generateSaleId, toDateInputValue, toMonthInputValue, showToast } from './utils.js';
+import { isManagerAuthenticated } from './auth.js';
 
 let currentPaymentMethod = 'cash'; // 'cash' | 'qr'
 let isProcessingPayment = false;
@@ -200,16 +201,24 @@ async function handleConfirmPayment() {
     createdAt: now.toISOString()
   };
 
+  const isManager = isManagerAuthenticated();
+
   try {
-    await addSale(salePayload);
+    if (isManager) {
+      // Official Store Sale: Persist to Firebase and Business Reports
+      await addSale(salePayload);
+      showToast('Payment Successful! Sale recorded in official reports.', 'success', 4000);
+    } else {
+      // Guest Demo Mode: Simulation only, does not affect official reports
+      showToast('Demo Payment Successful! (Guest Mode: Simulated sale not added to business reports)', 'info', 4000);
+    }
 
     // Show Success Modal
     closePaymentModal();
-    displayReceiptModal(salePayload);
+    displayReceiptModal(salePayload, isManager);
 
     // Clear cart state
     cart.clear();
-    showToast('Payment Successful! Sale recorded.', 'success', 4000);
   } catch (err) {
     console.error('Sale persistence failed:', err);
     showToast('Checkout failed: ' + err.message, 'error');
@@ -222,8 +231,8 @@ async function handleConfirmPayment() {
 /**
  * Display confirmation receipt popup
  */
-function displayReceiptModal(sale) {
-  receiptSaleId.textContent = sale.saleId;
+function displayReceiptModal(sale, isOfficialSale = true) {
+  receiptSaleId.textContent = isOfficialSale ? sale.saleId : `${sale.saleId} (DEMO)`;
   receiptTotal.textContent = formatRM(sale.total);
   receiptMethod.textContent = sale.paymentMethod === 'cash' ? 'Cash Payment' : 'QR Payment';
 

@@ -67,31 +67,34 @@ const yearlyMetricItems = document.getElementById('yearly-metric-items');
 const yearlyMetricDiscount = document.getElementById('yearly-metric-discount');
 const yearlyMetricCash = document.getElementById('yearly-metric-cash');
 const yearlyMetricQr = document.getElementById('yearly-metric-qr');
-const yearlyBestsellersTbody = document.getElementById('yearly-bestsellers-tbody');
+// Lock Element
+const reportsLockedView = document.getElementById('reports-locked-view');
+const btnUnlockReports = document.getElementById('btn-unlock-reports');
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
   initAuthHeader();
   setupEventListeners();
   initDatePickers();
-  loadDailyReport();
+  renderCurrentReport();
 });
 
 function setupEventListeners() {
+  if (btnUnlockReports) {
+    btnUnlockReports.addEventListener('click', () => {
+      requireManagerAuth(() => {
+        renderCurrentReport();
+      }, 'Unlock Store Financial Reports');
+    });
+  }
+
   // Tab switching
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       tabButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentTab = btn.dataset.tab;
-
-      sectionDaily.style.display = currentTab === 'daily' ? 'block' : 'none';
-      sectionMonthly.style.display = currentTab === 'monthly' ? 'block' : 'none';
-      sectionYearly.style.display = currentTab === 'yearly' ? 'block' : 'none';
-
-      if (currentTab === 'daily') loadDailyReport();
-      if (currentTab === 'monthly') loadMonthlyReport();
-      if (currentTab === 'yearly') loadYearlyReport();
+      renderCurrentReport();
     });
   });
 
@@ -135,6 +138,27 @@ function setupEventListeners() {
     selectedYear = parseInt(e.target.value, 10);
     loadYearlyReport();
   });
+}
+
+function renderCurrentReport() {
+  const isAuth = isManagerAuthenticated();
+
+  if (!isAuth) {
+    if (reportsLockedView) reportsLockedView.style.display = 'block';
+    sectionDaily.style.display = 'none';
+    sectionMonthly.style.display = 'none';
+    sectionYearly.style.display = 'none';
+    return;
+  }
+
+  if (reportsLockedView) reportsLockedView.style.display = 'none';
+  sectionDaily.style.display = currentTab === 'daily' ? 'block' : 'none';
+  sectionMonthly.style.display = currentTab === 'monthly' ? 'block' : 'none';
+  sectionYearly.style.display = currentTab === 'yearly' ? 'block' : 'none';
+
+  if (currentTab === 'daily') loadDailyReport();
+  if (currentTab === 'monthly') loadMonthlyReport();
+  if (currentTab === 'yearly') loadYearlyReport();
 }
 
 function initDatePickers() {
