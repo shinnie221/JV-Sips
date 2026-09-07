@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Reports - JV Sips</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/reports.css">
+  <!-- Chart.js for beautiful analytical graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Top App Navigation Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">JV</div>
+      <div>
+        <div class="brand-title">JV <span>Sips</span></div>
+        <div class="brand-subtitle">POS & Management</div>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <a href="pos.html" class="nav-item">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        POS Order
+      </a>
+      <a href="products.html" class="nav-item">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+        Products
+      </a>
+      <a href="reports.html" class="nav-item active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Sales Reports
+      </a>
+    </nav>
+
+    <div class="header-status">
+      <div id="db-status" class="db-status-badge">
+        <span class="db-status-dot"></span> Checking DB...
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+    <div class="reports-page">
+      
+      <!-- Top Title & Report Tabs -->
+      <div class="reports-header">
+        <div>
+          <h1 class="page-title">Sales Analytics & Reports</h1>
+          <p class="page-subtitle">Track revenue, transactions, drink counts, and best-selling series.</p>
+        </div>
+
+        <div class="report-tabs">
+          <button id="tab-daily" class="tab-btn active" data-tab="daily">Daily Report</button>
+          <button id="tab-monthly" class="tab-btn" data-tab="monthly">Monthly Report</button>
+          <button id="tab-yearly" class="tab-btn" data-tab="yearly">Yearly Report</button>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           1. DAILY REPORT SECTION
+           ==================================================================== -->
+      <div id="section-daily" class="report-section">
+        
+        <!-- Date Navigator Bar -->
+        <div class="date-navigator-bar">
+          <div class="date-nav-controls">
+            <button id="btn-prev-day" class="btn btn-secondary">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+              Previous Day
+            </button>
+            <span id="daily-date-display" class="date-display-badge">-- --- ----</span>
+            <button id="btn-next-day" class="btn btn-secondary">
+              Next Day
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="date" id="daily-date-picker" class="date-input-picker">
+            <button id="btn-today" class="btn btn-primary">Today</button>
+          </div>
+        </div>
+
+        <!-- Daily Metrics Summary Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Total Sales</span>
+            <span id="daily-metric-sales" class="metric-value metric-highlight">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Orders Count</span>
+            <span id="daily-metric-orders" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Drinks Sold</span>
+            <span id="daily-metric-items" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Discounts Given</span>
+            <span id="daily-metric-discount" class="metric-value" style="color: var(--danger);">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Payment Breakdown</span>
+            <div class="payment-split-box">
+              <span class="split-cash">Cash: <span id="daily-metric-cash">RM 0.00</span></span>
+              <span>|</span>
+              <span class="split-qr">QR: <span id="daily-metric-qr">RM 0.00</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Transactions Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <h3 class="table-title">Daily Transactions Log</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Time</th>
+                  <th>Purchased Items</th>
+                  <th>Subtotal</th>
+                  <th>Discount</th>
+                  <th>Total</th>
+                  <th>Payment</th>
+                </tr>
+              </thead>
+              <tbody id="daily-transactions-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====================================================================
+           2. MONTHLY REPORT SECTION
+           ==================================================================== -->
+      <div id="section-monthly" class="report-section" style="display: none;">
+        
+        <!-- Month Selector Bar -->
+        <div class="date-navigator-bar">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label class="form-label" style="margin: 0;" for="monthly-month-picker">Select Month:</label>
+            <input type="month" id="monthly-month-picker" class="date-input-picker">
+          </div>
+          <div id="monthly-period-display" class="date-display-badge">-- ----</div>
+        </div>
+
+        <!-- Monthly Metrics Summary Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Monthly Revenue</span>
+            <span id="monthly-metric-sales" class="metric-value metric-highlight">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Total Orders</span>
+            <span id="monthly-metric-orders" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Drinks Sold</span>
+            <span id="monthly-metric-items" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Total Discounts</span>
+            <span id="monthly-metric-discount" class="metric-value" style="color: var(--danger);">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Payment Breakdown</span>
+            <div class="payment-split-box">
+              <span class="split-cash">Cash: <span id="monthly-metric-cash">RM 0.00</span></span>
+              <span>|</span>
+              <span class="split-qr">QR: <span id="monthly-metric-qr">RM 0.00</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Sales by Day Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">Daily Sales Trend (This Month)</h3>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="monthly-trend-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Best Selling Drinks Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <h3 class="table-title">Best-Selling Products (Monthly)</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Drink Name</th>
+                  <th>Category</th>
+                  <th>Quantity Sold</th>
+                  <th>Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-bestsellers-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====================================================================
+           3. YEARLY REPORT SECTION
+           ==================================================================== -->
+      <div id="section-yearly" class="report-section" style="display: none;">
+        
+        <!-- Year Selector Bar -->
+        <div class="date-navigator-bar">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label class="form-label" style="margin: 0;" for="yearly-year-picker">Select Year:</label>
+            <select id="yearly-year-picker" class="form-select" style="width: 140px; font-weight:700;">
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+            </select>
+          </div>
+          <div id="yearly-period-display" class="date-display-badge">Year 2026</div>
+        </div>
+
+        <!-- Yearly Metrics Summary Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Yearly Revenue</span>
+            <span id="yearly-metric-sales" class="metric-value metric-highlight">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Total Orders</span>
+            <span id="yearly-metric-orders" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Drinks Sold</span>
+            <span id="yearly-metric-items" class="metric-value">0</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Total Discounts</span>
+            <span id="yearly-metric-discount" class="metric-value" style="color: var(--danger);">RM 0.00</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">Payment Breakdown</span>
+            <div class="payment-split-box">
+              <span class="split-cash">Cash: <span id="yearly-metric-cash">RM 0.00</span></span>
+              <span>|</span>
+              <span class="split-qr">QR: <span id="yearly-metric-qr">RM 0.00</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Yearly Revenue by Month Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">Monthly Revenue Breakdown</h3>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="yearly-revenue-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Best Selling Drinks Table (Yearly) -->
+        <div class="table-card">
+          <div class="table-header">
+            <h3 class="table-title">Best-Selling Products (Full Year)</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Drink Name</th>
+                  <th>Category</th>
+                  <th>Quantity Sold</th>
+                  <th>Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="yearly-bestsellers-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module" src="../js/reports.js"></script>
+</body>
+</html>

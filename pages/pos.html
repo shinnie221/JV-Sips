@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JV Sips - Point of Sale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/pos.css">
+</head>
+<body>
+
+  <!-- Top App Navigation Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">JV</div>
+      <div>
+        <div class="brand-title">JV <span>Sips</span></div>
+        <div class="brand-subtitle">POS & Management</div>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <a href="pos.html" class="nav-item active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        POS Order
+      </a>
+      <a href="products.html" class="nav-item">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+        Products
+      </a>
+      <a href="reports.html" class="nav-item">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Sales Reports
+      </a>
+    </nav>
+
+    <div class="header-status">
+      <div id="db-status" class="db-status-badge">
+        <span class="db-status-dot"></span> Checking DB...
+      </div>
+    </div>
+  </header>
+
+  <!-- Main POS Screen Layout -->
+  <main class="app-container">
+    <div class="pos-layout">
+      
+      <!-- LEFT: Drinks Menu & Categories Section -->
+      <section class="pos-menu-section">
+        <div class="pos-menu-header">
+          <div class="pos-search-row">
+            <div class="search-box" style="width: 100%;">
+              <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input type="text" id="pos-search-input" class="search-input" placeholder="Search drink name or Chinese name...">
+            </div>
+          </div>
+
+          <div id="pos-category-nav" class="pos-categories-nav">
+            <button class="pos-cat-btn active" data-category="all">All Drinks</button>
+            <button class="pos-cat-btn" data-category="Mango Series">Mango Series</button>
+            <button class="pos-cat-btn" data-category="Blueberry Series">Blueberry Series</button>
+            <button class="pos-cat-btn" data-category="Green Grape Series">Green Grape Series</button>
+          </div>
+        </div>
+
+        <div class="pos-grid-container">
+          <div id="pos-drinks-grid" class="pos-products-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Shopping Cart / Current Order Section -->
+      <aside class="pos-cart-section">
+        <div class="cart-header">
+          <div class="cart-title-wrapper">
+            <h2 class="cart-title">Current Order</h2>
+            <span id="cart-count-badge" class="cart-badge-count">0 items</span>
+          </div>
+          <button id="btn-clear-cart" class="btn-clear-cart" title="Clear all items in cart">Clear Cart</button>
+        </div>
+
+        <!-- Cart Items List -->
+        <div id="cart-items-container" class="cart-items-list">
+          <div class="cart-empty">
+            <div class="cart-empty-icon">🛒</div>
+            <p style="font-weight:600;">Your cart is empty</p>
+            <p style="font-size:0.8rem; margin-top:4px;">Tap any drink on the left to add it to the order.</p>
+          </div>
+        </div>
+
+        <!-- Summary & Checkout Controls -->
+        <div class="cart-summary-section">
+          
+          <!-- Fixed Amount Discount Row -->
+          <div class="discount-row">
+            <label class="discount-label" for="cart-discount-input">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+              Discount (Fixed RM):
+            </label>
+            <div class="discount-input-wrapper">
+              <span style="font-weight:700; color:var(--text-muted); font-size:0.85rem;">RM</span>
+              <input type="number" id="cart-discount-input" class="discount-input" value="0.00" min="0" step="0.50" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- Subtotal Line -->
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span id="cart-subtotal-display" style="font-weight: 600; color: var(--text-main);">RM 0.00</span>
+          </div>
+
+          <!-- Discount Line -->
+          <div class="summary-line">
+            <span>Discount</span>
+            <span id="cart-discount-display" style="font-weight: 600; color: var(--danger);">-RM 0.00</span>
+          </div>
+
+          <!-- Total Line -->
+          <div class="summary-line total-line">
+            <span>Total</span>
+            <span id="cart-total-display" class="total-amount-highlight">RM 0.00</span>
+          </div>
+
+          <!-- Checkout Buttons -->
+          <div class="checkout-buttons-grid">
+            <button id="btn-pay-cash" class="btn-checkout-cash" disabled>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              Pay Cash
+            </button>
+            <button id="btn-pay-qr" class="btn-checkout-qr" disabled>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+              Pay QR
+            </button>
+          </div>
+
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Drink Customizer Modal (Quantity & Oat Milk Tick Selection) -->
+  <div id="drink-customizer-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Customize Drink</h3>
+        <button id="btn-close-customizer" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="modal-drink-header">
+          <div>
+            <span id="cust-category-badge" class="badge badge-mango" style="margin-bottom: 6px;">Category</span>
+            <div id="cust-drink-name" class="modal-drink-title">Drink Name</div>
+            <div id="cust-drink-chinese" class="modal-drink-subtitle">中文名</div>
+          </div>
+          <div id="cust-base-price" class="modal-price-tag">RM 0.00</div>
+        </div>
+
+        <!-- Quantity Section -->
+        <div class="form-group">
+          <div class="modal-section-label">Quantity</div>
+          <div class="qty-modal-control">
+            <button type="button" id="btn-cust-qty-minus" class="qty-btn-large">−</button>
+            <span id="cust-qty-display" class="qty-number-large">1</span>
+            <button type="button" id="btn-cust-qty-plus" class="qty-btn-large">+</button>
+          </div>
+        </div>
+
+        <!-- Oat Milk Tick Section (Conditionally visible for milk drinks) -->
+        <div id="cust-oatmilk-section" class="form-group" style="display: none;">
+          <div class="modal-section-label">Milk Option</div>
+          <div id="cust-oatmilk-card" class="addon-toggle-card">
+            <div class="addon-toggle-left">
+              <input type="checkbox" id="cust-oatmilk-checkbox" style="width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer;">
+              <div>
+                <div class="addon-info-title">Oat Milk Add-on</div>
+                <div class="addon-info-subtitle">Upgrade from fresh milk to creamy Oat Milk</div>
+              </div>
+            </div>
+            <div id="cust-oatmilk-surcharge" class="addon-price-tag">+RM 2.00</div>
+          </div>
+        </div>
+
+        <!-- Live Subtotal Calculation -->
+        <div style="background: var(--bg-subtle); padding: 12px 16px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+          <span style="font-weight: 600; color: var(--text-muted);">Item Total:</span>
+          <span id="cust-calculated-subtotal" style="font-weight: 800; font-size: 1.25rem; color: var(--text-main);">RM 12.00</span>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-customizer" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-add-to-cart" class="btn btn-primary" style="flex:1;">
+          Add to Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash / QR Payment Modal -->
+  <div id="payment-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="payment-modal-title" class="modal-title">Payment</h3>
+        <button id="btn-close-payment-modal" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="payment-total-box">
+          <div class="payment-total-label">Final Amount Due</div>
+          <div id="payment-total-display" class="payment-total-val">RM 0.00</div>
+        </div>
+
+        <!-- CASH SECTION -->
+        <div id="cash-payment-section">
+          <div class="form-group">
+            <label class="form-label" for="input-cash-received">Cash Received (RM)</label>
+            <input type="number" id="input-cash-received" class="form-input" style="font-size: 1.3rem; font-weight: 700; text-align: center;" placeholder="0.00" step="0.50" min="0">
+          </div>
+
+          <div class="form-label" style="margin-top: 8px;">Quick Presets:</div>
+          <div id="quick-cash-presets" class="quick-cash-presets">
+            <!-- Preset buttons generated dynamically -->
+          </div>
+
+          <div id="change-box" class="change-display-box">
+            <span class="change-label">Change to return:</span>
+            <span id="change-value-display" class="change-value">RM 0.00</span>
+          </div>
+        </div>
+
+        <!-- QR SECTION -->
+        <div id="qr-payment-section" style="display: none; text-align: center; padding: 12px 0;">
+          <div style="width: 140px; height: 140px; margin: 0 auto 16px; background: white; border: 2px dashed var(--accent-blueberry); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color: var(--accent-blueberry);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+            </svg>
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent-blueberry); margin-top: 4px;">DuitNow / Touch 'n Go</span>
+          </div>
+          <p style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">Customer QR Payment</p>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">Please scan the counter QR code and verify payment confirmation.</p>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-payment" class="btn btn-secondary">Back</button>
+        <button type="button" id="btn-confirm-payment" class="btn btn-primary" style="flex:1;">
+          Confirm Payment
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Payment Receipt Modal -->
+  <div id="receipt-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 420px; text-align: center;">
+      <div class="modal-body" style="padding: 32px 24px;">
+        <div style="width: 64px; height: 64px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Payment Successful!</h2>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 20px;">Sale recorded successfully in database.</p>
+
+        <div style="background: var(--bg-subtle); border: 1px dashed var(--border-color); border-radius: var(--radius-md); padding: 16px; text-align: left; font-size: 0.9rem; margin-bottom: 20px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+            <span style="color:var(--text-muted);">Order ID:</span>
+            <span id="receipt-sale-id" style="font-weight:700; font-family:monospace;">JV-XXXXXXXX</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+            <span style="color:var(--text-muted);">Payment Method:</span>
+            <span id="receipt-method" style="font-weight:600;">Cash</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+            <span style="color:var(--text-muted);">Total Paid:</span>
+            <span id="receipt-total" style="font-weight:800; color:var(--primary-dark); font-size:1.1rem;">RM 0.00</span>
+          </div>
+          <div id="receipt-cash-row" style="display:flex; justify-content:space-between; border-top:1px dashed #cbd5e1; padding-top:8px; margin-top:8px;">
+            <div>
+              <span style="color:var(--text-muted); font-size:0.8rem;">Received: </span>
+              <span id="receipt-cash-received" style="font-weight:700;">RM 0.00</span>
+            </div>
+            <div>
+              <span style="color:var(--text-muted); font-size:0.8rem;">Change: </span>
+              <span id="receipt-change" style="font-weight:700; color:#047857;">RM 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-close-receipt" class="btn btn-primary" style="width: 100%;">
+          Start New Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="../js/pos.js"></script>
+</body>
+</html>
