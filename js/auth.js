@@ -235,26 +235,20 @@ export function updateHeaderAuthUI() {
   const headerStatus = document.querySelector('.header-status');
   if (!headerStatus) return;
 
-  let modeBadge = document.getElementById('app-mode-badge');
-  if (!modeBadge) {
-    modeBadge = document.createElement('div');
-    modeBadge.id = 'app-mode-badge';
-    modeBadge.className = 'app-mode-wrapper';
-    headerStatus.prepend(modeBadge);
-  }
-
   const isStaff = isStaffLoggedIn();
 
   if (isStaff) {
-    const email = currentStaffUser.email || 'Staff';
-    modeBadge.innerHTML = `
-      <div class="mode-pill mode-staff" title="Live Store Mode: Connected to official Firebase Cloud DB">
-        <span class="mode-dot live"></span>
-        <span class="mode-label">Live Store (<strong>${escapeHtml(email)}</strong>)</span>
+    const email = currentStaffUser ? (currentStaffUser.email || 'Staff') : 'Staff';
+    headerStatus.innerHTML = `
+      <div class="app-mode-wrapper">
+        <div class="mode-pill mode-staff" title="Live Store Mode: Connected to official Firebase Cloud DB">
+          <span class="mode-dot live"></span>
+          <span class="mode-label">Live Store (<strong>${escapeHtml(email)}</strong>)</span>
+        </div>
+        <button id="btn-header-signout" class="btn-auth-action" title="Sign out of Live Mode">
+          Sign Out
+        </button>
       </div>
-      <button id="btn-header-signout" class="btn-auth-action" title="Sign out of Live Mode">
-        Sign Out
-      </button>
     `;
 
     const btnSignOut = document.getElementById('btn-header-signout');
@@ -268,14 +262,16 @@ export function updateHeaderAuthUI() {
       });
     }
   } else {
-    modeBadge.innerHTML = `
-      <div class="mode-pill mode-guest" title="Guest Demo Sandbox: Changes are local and do not affect live store database">
-        <span class="mode-dot guest"></span>
-        <span class="mode-label">Guest Demo Mode</span>
+    headerStatus.innerHTML = `
+      <div class="app-mode-wrapper">
+        <div class="mode-pill mode-guest" title="Guest Demo Sandbox: Changes are local and do not affect live store database">
+          <span class="mode-dot guest"></span>
+          <span class="mode-label">Guest Demo Mode</span>
+        </div>
+        <button id="btn-header-signin" class="btn-auth-action btn-staff-signin" title="Sign in as Store Staff">
+          🔑 Staff Login
+        </button>
       </div>
-      <button id="btn-header-signin" class="btn-auth-action btn-staff-signin" title="Sign in as Store Staff">
-        🔑 Staff Login
-      </button>
     `;
 
     const btnSignIn = document.getElementById('btn-header-signin');
