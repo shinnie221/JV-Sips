@@ -15,6 +15,7 @@ import {
   escapeHtml, 
   getCategoryBadgeClass 
 } from './utils.js';
+import { initAuthHeader, requireManagerAuth, isManagerAuthenticated } from './auth.js';
 
 // State
 let currentTab = 'daily';
@@ -70,6 +71,7 @@ const yearlyBestsellersTbody = document.getElementById('yearly-bestsellers-tbody
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+  initAuthHeader();
   setupEventListeners();
   initDatePickers();
   loadDailyReport();

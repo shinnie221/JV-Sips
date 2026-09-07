@@ -552,6 +552,227 @@ button, input, select, textarea {
 .badge-grape { background: var(--accent-grape-light); color: #047857; }
 .badge-default { background: var(--bg-subtle); color: var(--text-muted); }
 
+/* Manager Security & PIN Modal */
+.manager-auth-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.manager-auth-btn.locked {
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.manager-auth-btn.locked:hover {
+  background: var(--accent-mango-light);
+  color: #b45309;
+  border-color: var(--accent-mango);
+}
+
+.manager-auth-btn.unlocked {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+
+.manager-auth-btn.unlocked:hover {
+  background: #bbf7d0;
+}
+
+.pin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.pin-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pin-modal-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px 20px 24px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pin-modal-overlay.active .pin-modal-card {
+  transform: scale(1);
+}
+
+.pin-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.pin-modal-close:hover {
+  background: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.pin-modal-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.pin-modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.pin-modal-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.pin-dots-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 10px 0;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--bg-subtle);
+  transition: all 0.2s ease;
+}
+
+.pin-dot.filled {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.pin-dots-display.shake {
+  animation: shake 0.45s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.pin-error-text {
+  font-size: 0.82rem;
+  color: var(--danger);
+  font-weight: 600;
+  min-height: 20px;
+  margin-bottom: 12px;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto 16px auto;
+}
+
+.pin-key-btn {
+  height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 1.35rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.pin-key-btn:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.pin-key-btn:active {
+  transform: scale(0.94);
+  background: #cbd5e1;
+}
+
+.pin-key-clear {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pin-key-del {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+}
+
+.pin-modal-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.pin-demo-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.demo-tag {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
 /* Responsive adjustments */
 @media (max-width: 900px) {
   .app-header {
@@ -564,4 +785,8 @@ button, input, select, textarea {
     padding: 6px 12px;
     font-size: 0.85rem;
   }
+  .hide-mobile {
+    display: none;
+  }
 }
+

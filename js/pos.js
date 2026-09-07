@@ -9,6 +9,7 @@ import { seedInitialMenu } from './seed.js';
 import { cart } from './cart.js';
 import { initPaymentController, openCheckout } from './payment.js';
 import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
+import { initAuthHeader } from './auth.js';
 
 let activeProducts = [];
 let selectedCategory = 'all';
@@ -66,6 +67,7 @@ const custCalculatedSubtotal = document.getElementById('cust-calculated-subtotal
 
 // Initial setup
 document.addEventListener('DOMContentLoaded', async () => {
+  initAuthHeader();
   initPaymentController();
   setupEventListeners();
   cart.subscribe(renderCart);

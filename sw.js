@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jv-sips-v2';
+const CACHE_NAME = 'jv-sips-v3';
 
 const STATIC_ASSETS = [
   '/',
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   '/css/pos.css',
   '/css/products.css',
   '/css/reports.css',
+  '/js/auth.js',
   '/js/db.js',
   '/js/firebase-config.js',
   '/js/cart.js',
