@@ -15,7 +15,7 @@ import {
   escapeHtml, 
   getCategoryBadgeClass 
 } from './utils.js';
-import { initAuthHeader, requireManagerAuth, isManagerAuthenticated } from './auth.js';
+import { initAuthHeader, requireManagerAuth, isManagerAuthenticated, isStaffLoggedIn, onStaffAuthStateChanged, openStaffLoginModal } from './auth.js';
 
 // State
 let currentTab = 'daily';
@@ -67,9 +67,9 @@ const yearlyMetricItems = document.getElementById('yearly-metric-items');
 const yearlyMetricDiscount = document.getElementById('yearly-metric-discount');
 const yearlyMetricCash = document.getElementById('yearly-metric-cash');
 const yearlyMetricQr = document.getElementById('yearly-metric-qr');
-// Lock Element
-const reportsLockedView = document.getElementById('reports-locked-view');
-const btnUnlockReports = document.getElementById('btn-unlock-reports');
+// Banner Elements
+const reportsGuestBanner = document.getElementById('reports-guest-banner');
+const btnGuestReportLogin = document.getElementById('btn-guest-report-login');
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,11 +77,16 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initDatePickers();
   renderCurrentReport();
+
+  // Re-render immediately when auth resolves (Guest <-> Staff)
+  onStaffAuthStateChanged(() => {
+    renderCurrentReport();
+  });
 });
 
 function setupEventListeners() {
-  if (btnUnlockReports) {
-    btnUnlockReports.addEventListener('click', () => {
+  if (btnGuestReportLogin) {
+    btnGuestReportLogin.addEventListener('click', () => {
       openStaffLoginModal();
     });
   }
@@ -141,15 +146,11 @@ function setupEventListeners() {
 function renderCurrentReport() {
   const isStaff = isStaffLoggedIn();
 
-  if (!isStaff) {
-    if (reportsLockedView) reportsLockedView.style.display = 'block';
-    sectionDaily.style.display = 'none';
-    sectionMonthly.style.display = 'none';
-    sectionYearly.style.display = 'none';
-    return;
+  // Show or hide guest sandbox notice banner
+  if (reportsGuestBanner) {
+    reportsGuestBanner.style.display = isStaff ? 'none' : 'flex';
   }
 
-  if (reportsLockedView) reportsLockedView.style.display = 'none';
   sectionDaily.style.display = currentTab === 'daily' ? 'block' : 'none';
   sectionMonthly.style.display = currentTab === 'monthly' ? 'block' : 'none';
   sectionYearly.style.display = currentTab === 'yearly' ? 'block' : 'none';

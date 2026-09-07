@@ -77,19 +77,18 @@
         </div>
       </div>
 
-      <!-- Manager Locked View for Guests -->
-      <div id="reports-locked-view" class="reports-locked-container" style="display: none;">
-        <div class="reports-locked-icon">🔒</div>
-        <h2 class="reports-locked-title">Financial Reports are Protected</h2>
-        <p class="reports-locked-desc">Store revenue figures, financial analytics, and order histories are restricted to Store Staff & Managers.</p>
-        <button id="btn-unlock-reports" class="btn btn-primary" style="padding: 12px 28px; font-weight: 700; font-size: 1rem; box-shadow: var(--shadow-md);">
-          🔐 Staff Sign In to View Reports
-        </button>
-        <div>
-          <span class="reports-locked-hint">
-            <strong>Guest Mode:</strong> You can test POS orders & menu changes in the Demo Sandbox anytime.
-          </span>
+      <!-- Guest Sandbox Notice Banner (visible in guest mode) -->
+      <div id="reports-guest-banner" class="reports-guest-banner" style="display: none; background: #fef3c7; border: 1px solid #fcd34d; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🧪</span>
+          <div>
+            <div style="font-weight: 700; color: #92400e; font-size: 0.95rem;">Guest Sandbox Mode Active</div>
+            <div style="font-size: 0.82rem; color: #b45309;">Showing temporary local test orders. Sign in as Staff to view official cloud sales records.</div>
+          </div>
         </div>
+        <button id="btn-guest-report-login" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 600;">
+          🔐 Staff Sign In
+        </button>
       </div>
 
       <!-- ====================================================================

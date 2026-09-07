@@ -9,7 +9,7 @@ import { seedInitialMenu } from './seed.js';
 import { cart } from './cart.js';
 import { initPaymentController, openCheckout } from './payment.js';
 import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
-import { initAuthHeader } from './auth.js';
+import { initAuthHeader, onStaffAuthStateChanged } from './auth.js';
 
 let activeProducts = [];
 let selectedCategory = 'all';
@@ -72,6 +72,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   cart.subscribe(renderCart);
   await loadAndRenderMenu();
+
+  // Re-render menu on auth change
+  onStaffAuthStateChanged(async () => {
+    await loadAndRenderMenu();
+  });
 });
 
 function setupEventListeners() {

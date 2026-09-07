@@ -93,7 +93,7 @@ export async function getProducts(activeOnly = false) {
     await initDatabase();
     if (isFirestoreReady) {
       try {
-        const { collection, getDocs, query, where } = firestoreModules;
+        const { collection, getDocs, addDoc, query, where, serverTimestamp } = firestoreModules;
         const colRef = collection(db, 'products');
         let q = colRef;
         if (activeOnly) {
@@ -107,8 +107,22 @@ export async function getProducts(activeOnly = false) {
         if (list.length > 0) {
           return sortProductsByCategory(list);
         }
-        // If Firestore is empty on first staff run, seed and return
-        await seedInitialMenu(false);
+
+        // If Firestore is completely empty on initial staff run, seed directly into Firestore
+        for (const item of INITIAL_MENU) {
+          await addDoc(colRef, {
+            name: item.name,
+            chineseName: item.chineseName || '',
+            category: item.category,
+            price: Number(parseFloat(item.price).toFixed(2)),
+            allowOatMilk: Boolean(item.allowOatMilk),
+            oatMilkPrice: Number(parseFloat(item.oatMilkPrice || 0).toFixed(2)),
+            active: Boolean(item.active),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+
         const newSnap = await getDocs(q);
         const seededList = [];
         newSnap.forEach(docSnap => {
@@ -174,63 +188,81 @@ export async function updateProduct(id, productData) {
     updatedAt: new Date().toISOString()
   };
 
-  if (isStaffLoggedIn() && isFirestoreReady) {
-    const { doc, updateDoc, serverTimestamp } = firestoreModules;
-    const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, {
-      ...updatePayload,
-      updatedAt: serverTimestamp()
-    });
-    return { id, ...updatePayload };
-  } else {
-    // Guest Sandbox Mode: Update locally only
-    const products = getGuestSandboxProducts();
-    const index = products.findIndex(p => p.id === id);
-    if (index !== -1) {
-      products[index] = { ...products[index], ...updatePayload };
-      saveGuestSandboxProducts(products);
-      return products[index];
+  const isSandboxId = typeof id === 'string' && id.startsWith('sandbox_');
+
+  if (isStaffLoggedIn() && isFirestoreReady && !isSandboxId) {
+    try {
+      const { doc, updateDoc, serverTimestamp } = firestoreModules;
+      const docRef = doc(db, 'products', id);
+      await updateDoc(docRef, {
+        ...updatePayload,
+        updatedAt: serverTimestamp()
+      });
+      return { id, ...updatePayload };
+    } catch (err) {
+      console.warn('Firestore updateDoc fallback for id:', id, err);
     }
-    throw new Error('Product not found in demo sandbox');
   }
+
+  // Sandbox Mode or Sandbox ID: Update locally
+  const products = getGuestSandboxProducts();
+  const index = products.findIndex(p => p.id === id);
+  if (index !== -1) {
+    products[index] = { ...products[index], ...updatePayload };
+    saveGuestSandboxProducts(products);
+    return products[index];
+  }
+  return { id, ...updatePayload };
 }
 
 export async function deleteProduct(id) {
   await initDatabase();
-  if (isStaffLoggedIn() && isFirestoreReady) {
-    const { doc, deleteDoc } = firestoreModules;
-    await deleteDoc(doc(db, 'products', id));
-    return true;
-  } else {
-    // Guest Sandbox Mode: Delete locally only
-    let products = getGuestSandboxProducts();
-    products = products.filter(p => p.id !== id);
-    saveGuestSandboxProducts(products);
-    return true;
+  const isSandboxId = typeof id === 'string' && id.startsWith('sandbox_');
+
+  if (isStaffLoggedIn() && isFirestoreReady && !isSandboxId) {
+    try {
+      const { doc, deleteDoc } = firestoreModules;
+      await deleteDoc(doc(db, 'products', id));
+      return true;
+    } catch (err) {
+      console.warn('Firestore deleteDoc fallback for id:', id, err);
+    }
   }
+
+  // Sandbox Mode or Sandbox ID: Delete locally
+  let products = getGuestSandboxProducts();
+  products = products.filter(p => p.id !== id);
+  saveGuestSandboxProducts(products);
+  return true;
 }
 
 export async function toggleProductActive(id, active) {
   await initDatabase();
-  if (isStaffLoggedIn() && isFirestoreReady) {
-    const { doc, updateDoc, serverTimestamp } = firestoreModules;
-    const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, {
-      active: Boolean(active),
-      updatedAt: serverTimestamp()
-    });
-    return true;
-  } else {
-    // Guest Sandbox Mode: Toggle locally only
-    const products = getGuestSandboxProducts();
-    const prod = products.find(p => p.id === id);
-    if (prod) {
-      prod.active = Boolean(active);
-      saveGuestSandboxProducts(products);
+  const isSandboxId = typeof id === 'string' && id.startsWith('sandbox_');
+
+  if (isStaffLoggedIn() && isFirestoreReady && !isSandboxId) {
+    try {
+      const { doc, updateDoc, serverTimestamp } = firestoreModules;
+      const docRef = doc(db, 'products', id);
+      await updateDoc(docRef, {
+        active: Boolean(active),
+        updatedAt: serverTimestamp()
+      });
       return true;
+    } catch (err) {
+      console.warn('Firestore toggleProductActive fallback for id:', id, err);
     }
-    throw new Error('Product not found in demo sandbox');
   }
+
+  // Sandbox Mode or Sandbox ID: Toggle locally
+  const products = getGuestSandboxProducts();
+  const prod = products.find(p => p.id === id);
+  if (prod) {
+    prod.active = Boolean(active);
+    saveGuestSandboxProducts(products);
+    return true;
+  }
+  return true;
 }
 
 // --------------------------------------------------------------------------

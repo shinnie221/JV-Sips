@@ -7,7 +7,7 @@
 import { getProducts, addProduct, updateProduct, deleteProduct, toggleProductActive } from './db.js';
 import { seedInitialMenu } from './seed.js';
 import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
-import { initAuthHeader, isStaffLoggedIn } from './auth.js';
+import { initAuthHeader, isStaffLoggedIn, onStaffAuthStateChanged } from './auth.js';
 
 let allProducts = [];
 let activeCategory = 'all';
@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAuthHeader();
   setupEventListeners();
   await loadAndRenderProducts();
+
+  // Re-render when auth resolves or toggles between Guest and Staff
+  onStaffAuthStateChanged(async () => {
+    await loadAndRenderProducts();
+  });
 });
 
 function setupEventListeners() {
