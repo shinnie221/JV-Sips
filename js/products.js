@@ -7,7 +7,7 @@
 import { getProducts, addProduct, updateProduct, deleteProduct, toggleProductActive } from './db.js';
 import { seedInitialMenu } from './seed.js';
 import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
-import { initAuthHeader, requireManagerAuth } from './auth.js';
+import { initAuthHeader, isStaffLoggedIn } from './auth.js';
 
 let allProducts = [];
 let activeCategory = 'all';
@@ -91,36 +91,35 @@ function setupEventListeners() {
 
   // Add Product Button
   btnAddProduct.addEventListener('click', () => {
-    requireManagerAuth(() => {
-      openProductModal('add');
-    }, 'Manager Access: Add Product');
+    openProductModal('add');
   });
 
   // Seed Menu Button
   btnSeedMenu.addEventListener('click', async () => {
-    requireManagerAuth(async () => {
-      const confirmSeed = confirm('Would you like to seed the 6 default menu drinks?\n\n(Click OK to seed. Any existing products with different names will be kept, or if already seeded it will safely populate)');
-      if (!confirmSeed) return;
+    const isStaff = isStaffLoggedIn();
+    const confirmSeed = confirm(isStaff 
+      ? 'Would you like to seed the default menu to your LIVE CLOUD database?' 
+      : 'Reset your demo sandbox to the 6 default menu drinks?');
+    if (!confirmSeed) return;
 
-      btnSeedMenu.disabled = true;
-      try {
-        const result = await seedInitialMenu(false);
-        if (!result.success && result.message.includes('already exist')) {
-          const replace = confirm('Products already exist. Do you want to reset & replace with the 6 standard default drinks?');
-          if (replace) {
-            await seedInitialMenu(true);
-            showToast('Menu reset to 6 default drinks!', 'success');
-          }
-        } else {
-          showToast(result.message, 'success');
+    btnSeedMenu.disabled = true;
+    try {
+      const result = await seedInitialMenu(false);
+      if (!result.success && result.message.includes('already exist')) {
+        const replace = confirm('Products already exist. Do you want to reset & replace with the 6 standard default drinks?');
+        if (replace) {
+          await seedInitialMenu(true);
+          showToast('Menu reset to 6 default drinks!', 'success');
         }
-        await loadAndRenderProducts();
-      } catch (err) {
-        showToast('Error seeding menu: ' + err.message, 'error');
-      } finally {
-        btnSeedMenu.disabled = false;
+      } else {
+        showToast(result.message, 'success');
       }
-    }, 'Manager Access: Reset Menu');
+      await loadAndRenderProducts();
+    } catch (err) {
+      showToast('Error seeding menu: ' + err.message, 'error');
+    } finally {
+      btnSeedMenu.disabled = false;
+    }
   });
 
   // Modal Closers
@@ -281,27 +280,24 @@ function renderFilteredProducts() {
     cb.addEventListener('change', async (e) => {
       const id = e.target.dataset.id;
       const newStatus = e.target.checked;
-      requireManagerAuth(async () => {
-        try {
-          await toggleProductActive(id, newStatus);
-          const prod = allProducts.find(p => p.id === id);
-          if (prod) prod.active = newStatus;
-          showToast(`Status updated to ${newStatus ? 'Active' : 'Disabled'}`, 'success');
-          renderFilteredProducts();
-        } catch (err) {
-          e.target.checked = !newStatus;
-          showToast('Failed to update status: ' + err.message, 'error');
-        }
-      }, 'Manager Access: Toggle Status');
+      try {
+        await toggleProductActive(id, newStatus);
+        const prod = allProducts.find(p => p.id === id);
+        if (prod) prod.active = newStatus;
+        const isStaff = isStaffLoggedIn();
+        showToast(`Status updated to ${newStatus ? 'Active' : 'Disabled'} ${isStaff ? '(Live Cloud)' : '(Demo Sandbox)'}`, 'success');
+        renderFilteredProducts();
+      } catch (err) {
+        e.target.checked = !newStatus;
+        showToast('Failed to update status: ' + err.message, 'error');
+      }
     });
   });
 
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      requireManagerAuth(() => {
-        openProductModal('edit', id);
-      }, 'Manager Access: Edit Drink');
+      openProductModal('edit', id);
     });
   });
 
@@ -309,9 +305,7 @@ function renderFilteredProducts() {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       const name = btn.dataset.name;
-      requireManagerAuth(() => {
-        openDeleteModal(id, name);
-      }, 'Manager Access: Delete Drink');
+      openDeleteModal(id, name);
     });
   });
 }

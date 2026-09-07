@@ -1,109 +1,158 @@
 /**
  * ==========================================================================
- * JV SIPS - STORE MANAGER PIN AUTHENTICATION & SECURITY
+ * JV SIPS - FIREBASE STAFF AUTHENTICATION & GUEST SANDBOX SYSTEM
  * ==========================================================================
  */
 
+import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
 import { showToast, escapeHtml } from './utils.js';
 
-const PIN_STORAGE_KEY = 'jv_sips_manager_pin';
-const AUTH_SESSION_KEY = 'jv_sips_manager_authenticated';
-const DEFAULT_PIN = '8888';
+let authInstance = null;
+let currentStaffUser = null;
+let isAuthInitialized = false;
+let authStateListeners = [];
 
 /**
- * Get current manager PIN
+ * Initialize Firebase Authentication
  */
-export function getManagerPin() {
-  return localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_PIN;
-}
+export async function initFirebaseAuth() {
+  if (isAuthInitialized) return { auth: authInstance, user: currentStaffUser };
 
-/**
- * Set a new manager PIN
- */
-export function setManagerPin(newPin) {
-  if (!newPin || newPin.length < 4) {
-    throw new Error('PIN must be at least 4 digits');
-  }
-  localStorage.setItem(PIN_STORAGE_KEY, newPin);
-}
+  if (isFirebaseConfigured()) {
+    try {
+      const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+      const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
 
-/**
- * Check if the current browser session is authenticated as Manager
- */
-export function isManagerAuthenticated() {
-  return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
-}
+      const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+      authInstance = getAuth(app);
 
-/**
- * Mark session as authenticated
- */
-export function setManagerAuthenticated(isAuth = true) {
-  if (isAuth) {
-    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+      // Listen to auth state changes
+      onAuthStateChanged(authInstance, (user) => {
+        currentStaffUser = user;
+        isAuthInitialized = true;
+        updateHeaderAuthUI();
+        notifyAuthStateChanged(user);
+      });
+
+      return { auth: authInstance, user: currentStaffUser };
+    } catch (err) {
+      console.warn('⚠️ Firebase Auth init fallback to local sandbox mode:', err);
+      isAuthInitialized = true;
+      updateHeaderAuthUI();
+      return { auth: null, user: null };
+    }
   } else {
-    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    isAuthInitialized = true;
+    updateHeaderAuthUI();
+    return { auth: null, user: null };
   }
-  updateAuthHeaderUI();
 }
 
 /**
- * Require manager authentication before performing an action
- * @param {Function} onSuccess Callback to execute if authenticated
- * @param {string} promptTitle Custom title for the PIN modal
+ * Check if a verified store staff member is currently logged in
  */
-export function requireManagerAuth(onSuccess, promptTitle = 'Store Manager PIN Required') {
-  if (isManagerAuthenticated()) {
-    if (typeof onSuccess === 'function') onSuccess();
-    return;
-  }
-  openPinModal(onSuccess, promptTitle);
+export function isStaffLoggedIn() {
+  return Boolean(currentStaffUser);
 }
 
-let pendingAction = null;
-let currentEnteredPin = '';
+/**
+ * Get current staff user object or null
+ */
+export function getCurrentStaffUser() {
+  return currentStaffUser;
+}
 
 /**
- * Initialize PIN Modal in DOM
+ * Subscribe to Auth State Changes
  */
-function ensurePinModalInDOM() {
-  if (document.getElementById('manager-pin-modal')) return;
+export function onStaffAuthStateChanged(callback) {
+  if (typeof callback === 'function') {
+    authStateListeners.push(callback);
+    if (isAuthInitialized) {
+      callback(currentStaffUser);
+    }
+  }
+}
+
+function notifyAuthStateChanged(user) {
+  for (const listener of authStateListeners) {
+    try {
+      listener(user);
+    } catch (err) {
+      console.error('Auth state listener error:', err);
+    }
+  }
+}
+
+/**
+ * Staff Sign In with Email & Password
+ */
+export async function signInStaff(email, password) {
+  await initFirebaseAuth();
+
+  if (!authInstance) {
+    throw new Error('Firebase Auth is not available. Running in local sandbox mode.');
+  }
+
+  const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+  const userCredential = await signInWithEmailAndPassword(authInstance, email.trim(), password);
+  currentStaffUser = userCredential.user;
+  showToast(`Welcome back, ${currentStaffUser.email}! Live Store Mode active.`, 'success', 3500);
+  closeStaffLoginModal();
+  return userCredential.user;
+}
+
+/**
+ * Staff Sign Out
+ */
+export async function signOutStaff() {
+  if (authInstance) {
+    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+    await signOut(authInstance);
+  }
+  currentStaffUser = null;
+  showToast('Signed out. Switched to Guest Demo Sandbox.', 'info', 3000);
+  updateHeaderAuthUI();
+}
+
+/**
+ * Ensure Staff Login Modal exists in DOM
+ */
+function ensureStaffModalInDOM() {
+  if (document.getElementById('staff-login-modal')) return;
 
   const modalHtml = `
-    <div id="manager-pin-modal" class="pin-modal-overlay">
-      <div class="pin-modal-card">
-        <button id="btn-close-pin-modal" class="pin-modal-close" title="Close">✕</button>
-        
-        <div class="pin-modal-icon">🔒</div>
-        <h3 id="pin-modal-title" class="pin-modal-title">Manager Passcode</h3>
-        <p class="pin-modal-desc">Enter 4-digit Manager PIN to access or modify store data.</p>
-        
-        <div class="pin-dots-display" id="pin-dots-display">
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
+    <div id="staff-login-modal" class="staff-modal-overlay">
+      <div class="staff-modal-card">
+        <button id="btn-close-staff-modal" class="staff-modal-close" title="Close">✕</button>
+
+        <div class="staff-modal-header">
+          <div class="staff-modal-icon">🔐</div>
+          <h3 class="staff-modal-title">Staff Sign In</h3>
+          <p class="staff-modal-desc">Sign in with your store account to access Live Cloud Mode and official sales.</p>
         </div>
 
-        <div id="pin-error-msg" class="pin-error-text"></div>
+        <form id="staff-login-form" class="staff-login-form">
+          <div class="staff-form-group">
+            <label class="staff-form-label" for="staff-input-email">Staff Email</label>
+            <input type="email" id="staff-input-email" class="staff-form-input" placeholder="e.g. staff@jvsips.com" required autocomplete="username">
+          </div>
 
-        <div class="pin-keypad">
-          <button type="button" class="pin-key-btn" data-val="1">1</button>
-          <button type="button" class="pin-key-btn" data-val="2">2</button>
-          <button type="button" class="pin-key-btn" data-val="3">3</button>
-          <button type="button" class="pin-key-btn" data-val="4">4</button>
-          <button type="button" class="pin-key-btn" data-val="5">5</button>
-          <button type="button" class="pin-key-btn" data-val="6">6</button>
-          <button type="button" class="pin-key-btn" data-val="7">7</button>
-          <button type="button" class="pin-key-btn" data-val="8">8</button>
-          <button type="button" class="pin-key-btn" data-val="9">9</button>
-          <button type="button" class="pin-key-btn pin-key-clear" id="btn-pin-clear">Clear</button>
-          <button type="button" class="pin-key-btn" data-val="0">0</button>
-          <button type="button" class="pin-key-btn pin-key-del" id="btn-pin-del">⌫</button>
-        </div>
+          <div class="staff-form-group">
+            <label class="staff-form-label" for="staff-input-password">Password</label>
+            <input type="password" id="staff-input-password" class="staff-form-input" placeholder="••••••••" required autocomplete="current-password">
+          </div>
 
-        <div class="pin-modal-footer">
-          <div class="pin-demo-hint">
-            <span class="demo-tag">Portfolio Demo Hint:</span> Default PIN is <strong>8888</strong>
+          <div id="staff-login-error" class="staff-error-msg" style="display: none;"></div>
+
+          <button type="submit" id="btn-staff-submit" class="btn btn-primary staff-submit-btn">
+            Sign In to Store
+          </button>
+        </form>
+
+        <div class="staff-modal-footer">
+          <div class="staff-guest-note">
+            <strong>Guest Mode:</strong> You can use all POS features in Demo Sandbox without logging in.
           </div>
         </div>
       </div>
@@ -112,166 +161,126 @@ function ensurePinModalInDOM() {
 
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-  // Event handlers
-  const modal = document.getElementById('manager-pin-modal');
-  const btnClose = document.getElementById('btn-close-pin-modal');
-  const btnClear = document.getElementById('btn-pin-clear');
-  const btnDel = document.getElementById('btn-pin-del');
+  // Bind Events
+  const modal = document.getElementById('staff-login-modal');
+  const btnClose = document.getElementById('btn-close-staff-modal');
+  const form = document.getElementById('staff-login-form');
+  const errorEl = document.getElementById('staff-login-error');
+  const btnSubmit = document.getElementById('btn-staff-submit');
 
-  btnClose.addEventListener('click', closePinModal);
-  
-  btnClear.addEventListener('click', () => {
-    currentEnteredPin = '';
-    updatePinDots();
+  btnClose.addEventListener('click', closeStaffLoginModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeStaffLoginModal();
   });
 
-  btnDel.addEventListener('click', () => {
-    if (currentEnteredPin.length > 0) {
-      currentEnteredPin = currentEnteredPin.slice(0, -1);
-      updatePinDots();
-    }
-  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('staff-input-email').value;
+    const password = document.getElementById('staff-input-password').value;
 
-  modal.querySelectorAll('.pin-key-btn[data-val]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const digit = btn.dataset.val;
-      handlePinDigitInput(digit);
-    });
-  });
+    errorEl.style.display = 'none';
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" /></svg>
+      Signing in...
+    `;
 
-  // Physical keyboard support
-  window.addEventListener('keydown', (e) => {
-    if (!modal.classList.contains('active')) return;
-    if (e.key >= '0' && e.key <= '9') {
-      handlePinDigitInput(e.key);
-    } else if (e.key === 'Backspace') {
-      if (currentEnteredPin.length > 0) {
-        currentEnteredPin = currentEnteredPin.slice(0, -1);
-        updatePinDots();
+    try {
+      await signInStaff(email, password);
+      // Reload current page to switch to Live Cloud Mode
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error('Sign in error:', err);
+      let msg = err.message || 'Failed to sign in. Please check your credentials.';
+      if (msg.includes('user-not-found') || msg.includes('wrong-password') || msg.includes('invalid-credential')) {
+        msg = 'Invalid email or password. Please verify your staff credentials.';
+      } else if (msg.includes('too-many-requests')) {
+        msg = 'Too many failed login attempts. Please try again later.';
       }
-    } else if (e.key === 'Escape') {
-      closePinModal();
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = 'Sign In to Store';
     }
   });
 }
 
-function handlePinDigitInput(digit) {
-  if (currentEnteredPin.length >= 4) return;
-  currentEnteredPin += digit;
-  updatePinDots();
-
-  if (currentEnteredPin.length === 4) {
-    validateEnteredPin();
-  }
+export function openStaffLoginModal() {
+  ensureStaffModalInDOM();
+  const modal = document.getElementById('staff-login-modal');
+  const errorEl = document.getElementById('staff-login-error');
+  const emailInput = document.getElementById('staff-input-email');
+  if (errorEl) errorEl.style.display = 'none';
+  if (modal) modal.classList.add('active');
+  if (emailInput) setTimeout(() => emailInput.focus(), 150);
 }
 
-function updatePinDots() {
-  const dots = document.querySelectorAll('#pin-dots-display .pin-dot');
-  dots.forEach((dot, index) => {
-    if (index < currentEnteredPin.length) {
-      dot.classList.add('filled');
-    } else {
-      dot.classList.remove('filled');
-    }
-  });
-  const errorMsg = document.getElementById('pin-error-msg');
-  if (errorMsg) errorMsg.textContent = '';
-}
-
-function validateEnteredPin() {
-  const correctPin = getManagerPin();
-  const errorMsg = document.getElementById('pin-error-msg');
-  const dotsContainer = document.getElementById('pin-dots-display');
-
-  if (currentEnteredPin === correctPin) {
-    setManagerAuthenticated(true);
-    showToast('Manager access granted!', 'success', 2000);
-    closePinModal();
-    if (typeof pendingAction === 'function') {
-      const action = pendingAction;
-      pendingAction = null;
-      action();
-    }
-  } else {
-    if (dotsContainer) {
-      dotsContainer.classList.add('shake');
-      setTimeout(() => dotsContainer.classList.remove('shake'), 500);
-    }
-    if (errorMsg) {
-      errorMsg.textContent = 'Incorrect PIN. Please try again.';
-    }
-    currentEnteredPin = '';
-    setTimeout(() => {
-      updatePinDots();
-    }, 400);
-  }
-}
-
-export function openPinModal(onSuccess = null, title = 'Store Manager PIN Required') {
-  ensurePinModalInDOM();
-  pendingAction = onSuccess;
-  currentEnteredPin = '';
-  updatePinDots();
-
-  const modal = document.getElementById('manager-pin-modal');
-  const titleEl = document.getElementById('pin-modal-title');
-  if (titleEl) titleEl.textContent = title;
-  
-  modal.classList.add('active');
-}
-
-export function closePinModal() {
-  const modal = document.getElementById('manager-pin-modal');
+export function closeStaffLoginModal() {
+  const modal = document.getElementById('staff-login-modal');
   if (modal) modal.classList.remove('active');
-  pendingAction = null;
-  currentEnteredPin = '';
 }
 
 /**
- * Initialize Header Auth Lock/Unlock Status Badge and Change PIN button
+ * Initialize Header Auth & Mode Badges
  */
 export function initAuthHeader() {
-  ensurePinModalInDOM();
+  ensureStaffModalInDOM();
+  initFirebaseAuth();
+  updateHeaderAuthUI();
+}
+
+export function updateHeaderAuthUI() {
   const headerStatus = document.querySelector('.header-status');
   if (!headerStatus) return;
 
-  let authBadge = document.getElementById('manager-auth-badge');
-  if (!authBadge) {
-    authBadge = document.createElement('button');
-    authBadge.id = 'manager-auth-badge';
-    authBadge.className = 'manager-auth-btn';
-    headerStatus.prepend(authBadge);
+  let modeBadge = document.getElementById('app-mode-badge');
+  if (!modeBadge) {
+    modeBadge = document.createElement('div');
+    modeBadge.id = 'app-mode-badge';
+    modeBadge.className = 'app-mode-wrapper';
+    headerStatus.prepend(modeBadge);
   }
 
-  authBadge.addEventListener('click', () => {
-    if (isManagerAuthenticated()) {
-      const confirmLock = confirm('Lock Manager Mode now? (You will need to re-enter PIN to edit products or reports)');
-      if (confirmLock) {
-        setManagerAuthenticated(false);
-        showToast('Manager mode locked.', 'info');
-      }
-    } else {
-      openPinModal(() => {
-        showToast('Manager mode unlocked!', 'success');
-      }, 'Unlock Manager Mode');
+  const isStaff = isStaffLoggedIn();
+
+  if (isStaff) {
+    const email = currentStaffUser.email || 'Staff';
+    modeBadge.innerHTML = `
+      <div class="mode-pill mode-staff" title="Live Store Mode: Connected to official Firebase Cloud DB">
+        <span class="mode-dot live"></span>
+        <span class="mode-label">Live Store (<strong>${escapeHtml(email)}</strong>)</span>
+      </div>
+      <button id="btn-header-signout" class="btn-auth-action" title="Sign out of Live Mode">
+        Sign Out
+      </button>
+    `;
+
+    const btnSignOut = document.getElementById('btn-header-signout');
+    if (btnSignOut) {
+      btnSignOut.addEventListener('click', async () => {
+        const confirmSignOut = confirm('Sign out of Live Store Mode? The app will return to Guest Sandbox Mode.');
+        if (confirmSignOut) {
+          await signOutStaff();
+          setTimeout(() => window.location.reload(), 400);
+        }
+      });
     }
-  });
-
-  updateAuthHeaderUI();
-}
-
-function updateAuthHeaderUI() {
-  const authBadge = document.getElementById('manager-auth-badge');
-  if (!authBadge) return;
-
-  const isAuth = isManagerAuthenticated();
-  if (isAuth) {
-    authBadge.innerHTML = '🔓 <span class="hide-mobile">Manager Unlocked</span>';
-    authBadge.className = 'manager-auth-btn unlocked';
-    authBadge.title = 'Click to lock Manager Mode';
   } else {
-    authBadge.innerHTML = '🔒 <span class="hide-mobile">Manager Locked</span>';
-    authBadge.className = 'manager-auth-btn locked';
-    authBadge.title = 'Click to unlock Manager Mode (Default PIN: 8888)';
+    modeBadge.innerHTML = `
+      <div class="mode-pill mode-guest" title="Guest Demo Sandbox: Changes are local and do not affect live store database">
+        <span class="mode-dot guest"></span>
+        <span class="mode-label">Guest Demo Mode</span>
+      </div>
+      <button id="btn-header-signin" class="btn-auth-action btn-staff-signin" title="Sign in as Store Staff">
+        🔑 Staff Login
+      </button>
+    `;
+
+    const btnSignIn = document.getElementById('btn-header-signin');
+    if (btnSignIn) {
+      btnSignIn.addEventListener('click', openStaffLoginModal);
+    }
   }
 }

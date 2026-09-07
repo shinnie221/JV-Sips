@@ -3,14 +3,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Products collection: Allow read and write for POS and Product catalog
+    // Products collection:
+    // Anyone can read products to view the menu, but ONLY authenticated staff can add, edit, or delete
     match /products/{productId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
-    // Sales collection: Allow read and write for POS checkout and sales reports
+    // Sales collection:
+    // ONLY authenticated staff can record sales or read official store financial reports
     match /sales/{saleId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -82,9 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
   if (btnUnlockReports) {
     btnUnlockReports.addEventListener('click', () => {
-      requireManagerAuth(() => {
-        renderCurrentReport();
-      }, 'Unlock Store Financial Reports');
+      openStaffLoginModal();
     });
   }
 
@@ -141,9 +139,9 @@ function setupEventListeners() {
 }
 
 function renderCurrentReport() {
-  const isAuth = isManagerAuthenticated();
+  const isStaff = isStaffLoggedIn();
 
-  if (!isAuth) {
+  if (!isStaff) {
     if (reportsLockedView) reportsLockedView.style.display = 'block';
     sectionDaily.style.display = 'none';
     sectionMonthly.style.display = 'none';

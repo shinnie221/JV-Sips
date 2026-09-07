@@ -552,43 +552,90 @@ button, input, select, textarea {
 .badge-grape { background: var(--accent-grape-light); color: #047857; }
 .badge-default { background: var(--bg-subtle); color: var(--text-muted); }
 
-/* Manager Security & PIN Modal */
-.manager-auth-btn {
+/* App Mode Badges & Staff Auth UI */
+.app-mode-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-pill {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mode-pill.mode-staff {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border: 1px solid var(--primary);
+}
+
+.mode-pill.mode-guest {
+  background: var(--accent-mango-light);
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.mode-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mode-dot.live {
+  background: var(--primary);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  animation: pulse-live 2s infinite;
+}
+
+.mode-dot.guest {
+  background: var(--accent-mango);
+}
+
+@keyframes pulse-live {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.btn-auth-action {
+  padding: 5px 12px;
   border-radius: var(--radius-full);
   font-size: 0.8rem;
   font-weight: 700;
+  cursor: pointer;
   border: 1px solid var(--border-color);
   background: var(--bg-surface);
-  cursor: pointer;
+  color: var(--text-main);
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.manager-auth-btn.locked {
-  color: var(--text-muted);
-  border-color: var(--border-color);
+.btn-auth-action:hover {
+  background: var(--bg-subtle);
+  border-color: #cbd5e1;
 }
 
-.manager-auth-btn.locked:hover {
-  background: var(--accent-mango-light);
-  color: #b45309;
-  border-color: var(--accent-mango);
+.btn-staff-signin {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
 }
 
-.manager-auth-btn.unlocked {
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  border-color: var(--primary);
+.btn-staff-signin:hover {
+  background: var(--primary-dark);
+  color: white;
 }
 
-.manager-auth-btn.unlocked:hover {
-  background: #bbf7d0;
-}
-
-.pin-modal-overlay {
+/* Staff Login Modal */
+.staff-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.65);
@@ -602,6 +649,146 @@ button, input, select, textarea {
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
 }
+
+.staff-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.staff-modal-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px 24px 28px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  transform: scale(0.94);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.staff-modal-overlay.active .staff-modal-card {
+  transform: scale(1);
+}
+
+.staff-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.staff-modal-close:hover {
+  background: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.staff-modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.staff-modal-icon {
+  font-size: 2.4rem;
+  margin-bottom: 8px;
+}
+
+.staff-modal-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.staff-modal-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.staff-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.staff-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.staff-form-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.staff-form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  font-size: 0.95rem;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.staff-form-input:focus {
+  background: var(--bg-surface);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+.staff-error-msg {
+  background: var(--danger-light);
+  color: #b91c1c;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.staff-submit-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+  margin-top: 4px;
+}
+
+.staff-modal-footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.staff-guest-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
 
 .pin-modal-overlay.active {
   opacity: 1;

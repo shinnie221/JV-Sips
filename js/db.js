@@ -1,30 +1,32 @@
 /**
  * ==========================================================================
- * JV SIPS - DATABASE & DATA ACCESS LAYER (Firestore & Local Fallback)
+ * JV SIPS - DATABASE & DATA ACCESS LAYER (Firestore & Guest Sandbox)
  * ==========================================================================
  */
 
 import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
 import { sortProductsByCategory } from './utils.js';
+import { isStaffLoggedIn } from './auth.js';
+import { INITIAL_MENU } from './seed.js';
 
-// Firebase imports (loaded dynamically from official CDN)
+// Firebase imports
 let db = null;
 let isFirestoreReady = false;
 let firestoreModules = null;
 
-// LocalStorage fallback keys
-const LS_PRODUCTS_KEY = 'jv_sips_products';
-const LS_SALES_KEY = 'jv_sips_sales';
+// Guest Sandbox LocalStorage keys (100% isolated from real cloud data)
+const LS_GUEST_PRODUCTS_KEY = 'jv_sips_guest_products';
+const LS_GUEST_SALES_KEY = 'jv_sips_guest_sales';
 
 /**
- * Initialize Firestore or Local Storage
+ * Initialize Firestore
  */
 export async function initDatabase() {
   if (isFirestoreReady) return { isFirestore: true, db };
 
   if (isFirebaseConfigured()) {
     try {
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+      const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
       const { 
         getFirestore, 
         collection, 
@@ -41,44 +43,18 @@ export async function initDatabase() {
         serverTimestamp 
       } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
-      const app = initializeApp(firebaseConfig);
+      const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       db = getFirestore(app);
       firestoreModules = { collection, doc, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp };
       isFirestoreReady = true;
-      console.log('✅ Firebase Firestore connected successfully.');
-      updateHeaderStatus(true);
       return { isFirestore: true, db };
     } catch (err) {
-      console.warn('⚠️ Firebase init error, falling back to Local Storage:', err);
+      console.warn('⚠️ Firestore init fallback to sandbox mode:', err);
       isFirestoreReady = false;
-      updateHeaderStatus(false);
       return { isFirestore: false };
     }
   } else {
-    console.log('ℹ️ Firebase config has placeholders. Running in Local Mode.');
-    updateHeaderStatus(false);
     return { isFirestore: false };
-  }
-}
-
-/**
- * Update the UI Header status indicator
- */
-function updateHeaderStatus(isOnline) {
-  const statusEl = document.getElementById('db-status');
-  if (!statusEl) return;
-  if (isOnline) {
-    statusEl.innerHTML = '<span class="db-status-dot"></span> Firebase Live';
-    statusEl.className = 'db-status-badge';
-    statusEl.style.background = 'var(--primary-light)';
-    statusEl.style.color = 'var(--primary-dark)';
-    statusEl.title = 'Connected to Firebase Firestore';
-  } else {
-    statusEl.innerHTML = '<span class="db-status-dot" style="background:var(--accent-mango)"></span> Local Mode';
-    statusEl.className = 'db-status-badge';
-    statusEl.style.background = 'var(--accent-mango-light)';
-    statusEl.style.color = '#b45309';
-    statusEl.title = 'Running on browser storage. Add your Firebase keys in js/firebase-config.js to sync online.';
   }
 }
 
@@ -89,9 +65,10 @@ function updateHeaderStatus(isOnline) {
 export async function getProducts(activeOnly = false) {
   await initDatabase();
 
-  if (isFirestoreReady) {
+  // If staff is logged in and Firestore is connected, fetch from Live Cloud
+  if (isStaffLoggedIn() && isFirestoreReady) {
     try {
-      const { collection, getDocs, query, where, orderBy } = firestoreModules;
+      const { collection, getDocs, query, where } = firestoreModules;
       const colRef = collection(db, 'products');
       let q = colRef;
       if (activeOnly) {
@@ -104,11 +81,29 @@ export async function getProducts(activeOnly = false) {
       });
       return sortProductsByCategory(list);
     } catch (err) {
-      console.error('Firestore getProducts error:', err);
-      return getLocalProducts(activeOnly);
+      console.error('Firestore getProducts error (falling back to guest sandbox):', err);
+      return getGuestSandboxProducts(activeOnly);
+    }
+  } else if (isFirestoreReady) {
+    // If guest mode, try fetching public catalog from Firestore for reading, or fall back to sandbox
+    try {
+      const { collection, getDocs, query, where } = firestoreModules;
+      const colRef = collection(db, 'products');
+      let q = activeOnly ? query(colRef, where('active', '==', true)) : colRef;
+      const snapshot = await getDocs(q);
+      const list = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      if (list.length > 0) {
+        return sortProductsByCategory(list);
+      }
+      return getGuestSandboxProducts(activeOnly);
+    } catch (err) {
+      return getGuestSandboxProducts(activeOnly);
     }
   } else {
-    return getLocalProducts(activeOnly);
+    return getGuestSandboxProducts(activeOnly);
   }
 }
 
@@ -126,7 +121,7 @@ export async function addProduct(productData) {
     updatedAt: new Date().toISOString()
   };
 
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     const { collection, addDoc, serverTimestamp } = firestoreModules;
     const docRef = await addDoc(collection(db, 'products'), {
       ...productPayload,
@@ -135,13 +130,14 @@ export async function addProduct(productData) {
     });
     return { id: docRef.id, ...productPayload };
   } else {
-    const products = getLocalProducts();
+    // Guest Sandbox Mode: Save locally only
+    const products = getGuestSandboxProducts();
     const newProduct = {
-      id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: 'sandbox_prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       ...productPayload
     };
     products.push(newProduct);
-    saveLocalProducts(products);
+    saveGuestSandboxProducts(products);
     return newProduct;
   }
 }
@@ -159,7 +155,7 @@ export async function updateProduct(id, productData) {
     updatedAt: new Date().toISOString()
   };
 
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     const { doc, updateDoc, serverTimestamp } = firestoreModules;
     const docRef = doc(db, 'products', id);
     await updateDoc(docRef, {
@@ -168,48 +164,53 @@ export async function updateProduct(id, productData) {
     });
     return { id, ...updatePayload };
   } else {
-    const products = getLocalProducts();
+    // Guest Sandbox Mode: Update locally only
+    const products = getGuestSandboxProducts();
     const index = products.findIndex(p => p.id === id);
     if (index !== -1) {
       products[index] = { ...products[index], ...updatePayload };
-      saveLocalProducts(products);
+      saveGuestSandboxProducts(products);
       return products[index];
     }
-    throw new Error('Product not found in local store');
+    throw new Error('Product not found in demo sandbox');
   }
 }
 
 export async function deleteProduct(id) {
   await initDatabase();
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     const { doc, deleteDoc } = firestoreModules;
     await deleteDoc(doc(db, 'products', id));
     return true;
   } else {
-    let products = getLocalProducts();
+    // Guest Sandbox Mode: Delete locally only
+    let products = getGuestSandboxProducts();
     products = products.filter(p => p.id !== id);
-    saveLocalProducts(products);
+    saveGuestSandboxProducts(products);
     return true;
   }
 }
 
 export async function toggleProductActive(id, active) {
   await initDatabase();
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     const { doc, updateDoc, serverTimestamp } = firestoreModules;
     const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, { active: Boolean(active), updatedAt: serverTimestamp() });
+    await updateDoc(docRef, {
+      active: Boolean(active),
+      updatedAt: serverTimestamp()
+    });
     return true;
   } else {
-    const products = getLocalProducts();
-    const product = products.find(p => p.id === id);
-    if (product) {
-      product.active = Boolean(active);
-      product.updatedAt = new Date().toISOString();
-      saveLocalProducts(products);
+    // Guest Sandbox Mode: Toggle locally only
+    const products = getGuestSandboxProducts();
+    const prod = products.find(p => p.id === id);
+    if (prod) {
+      prod.active = Boolean(active);
+      saveGuestSandboxProducts(products);
       return true;
     }
-    return false;
+    throw new Error('Product not found in demo sandbox');
   }
 }
 
@@ -221,42 +222,44 @@ export async function addSale(saleData) {
   await initDatabase();
   const salePayload = {
     saleId: saleData.saleId,
-    items: saleData.items, // Array of snapshot objects
-    totalItems: Number(saleData.totalItems),
+    items: saleData.items,
+    totalItems: saleData.totalItems,
     subtotal: Number(parseFloat(saleData.subtotal).toFixed(2)),
     discount: Number(parseFloat(saleData.discount || 0).toFixed(2)),
     total: Number(parseFloat(saleData.total).toFixed(2)),
-    paymentMethod: saleData.paymentMethod, // 'cash' | 'qr'
-    cashReceived: saleData.cashReceived ? Number(parseFloat(saleData.cashReceived).toFixed(2)) : null,
-    change: saleData.change ? Number(parseFloat(saleData.change).toFixed(2)) : null,
-    saleDate: saleData.saleDate,   // YYYY-MM-DD
-    saleMonth: saleData.saleMonth, // YYYY-MM
+    paymentMethod: saleData.paymentMethod,
+    cashReceived: saleData.cashReceived !== null ? Number(parseFloat(saleData.cashReceived).toFixed(2)) : null,
+    change: saleData.change !== null ? Number(parseFloat(saleData.change).toFixed(2)) : null,
+    saleDate: saleData.saleDate,
+    saleMonth: saleData.saleMonth,
     saleYear: Number(saleData.saleYear),
-    createdAt: new Date().toISOString()
+    createdAt: saleData.createdAt || new Date().toISOString()
   };
 
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
+    // Live Cloud Store: Record official sale in Firestore
     const { collection, addDoc, serverTimestamp } = firestoreModules;
     const docRef = await addDoc(collection(db, 'sales'), {
       ...salePayload,
-      createdAt: serverTimestamp()
+      timestamp: serverTimestamp()
     });
     return { id: docRef.id, ...salePayload };
   } else {
-    const sales = getLocalSales();
+    // Guest Sandbox Mode: Record simulated sale in local sandbox
+    const sales = getGuestSandboxSales();
     const newSale = {
-      id: 'sale_' + Date.now(),
+      id: 'sandbox_sale_' + Date.now(),
       ...salePayload
     };
     sales.unshift(newSale);
-    saveLocalSales(sales);
+    saveGuestSandboxSales(sales);
     return newSale;
   }
 }
 
 export async function getSalesByDate(dateStr) {
   await initDatabase();
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     try {
       const { collection, getDocs, query, where } = firestoreModules;
       const colRef = collection(db, 'sales');
@@ -269,20 +272,20 @@ export async function getSalesByDate(dateStr) {
       return list;
     } catch (err) {
       console.error('Firestore getSalesByDate error:', err);
-      return getLocalSales().filter(s => s.saleDate === dateStr);
+      return getGuestSandboxSales().filter(s => s.saleDate === dateStr);
     }
   } else {
-    return getLocalSales().filter(s => s.saleDate === dateStr);
+    return getGuestSandboxSales().filter(s => s.saleDate === dateStr);
   }
 }
 
-export async function getSalesByMonth(monthStr) {
+export async function getSalesByMonth(yearMonthStr) {
   await initDatabase();
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     try {
       const { collection, getDocs, query, where } = firestoreModules;
       const colRef = collection(db, 'sales');
-      const q = query(colRef, where('saleMonth', '==', monthStr));
+      const q = query(colRef, where('saleMonth', '==', yearMonthStr));
       const snapshot = await getDocs(q);
       const list = [];
       snapshot.forEach(docSnap => {
@@ -291,17 +294,17 @@ export async function getSalesByMonth(monthStr) {
       return list;
     } catch (err) {
       console.error('Firestore getSalesByMonth error:', err);
-      return getLocalSales().filter(s => s.saleMonth === monthStr);
+      return getGuestSandboxSales().filter(s => s.saleMonth === yearMonthStr);
     }
   } else {
-    return getLocalSales().filter(s => s.saleMonth === monthStr);
+    return getGuestSandboxSales().filter(s => s.saleMonth === yearMonthStr);
   }
 }
 
 export async function getSalesByYear(yearNum) {
   await initDatabase();
   const year = Number(yearNum);
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     try {
       const { collection, getDocs, query, where } = firestoreModules;
       const colRef = collection(db, 'sales');
@@ -314,16 +317,16 @@ export async function getSalesByYear(yearNum) {
       return list;
     } catch (err) {
       console.error('Firestore getSalesByYear error:', err);
-      return getLocalSales().filter(s => Number(s.saleYear) === year);
+      return getGuestSandboxSales().filter(s => Number(s.saleYear) === year);
     }
   } else {
-    return getLocalSales().filter(s => Number(s.saleYear) === year);
+    return getGuestSandboxSales().filter(s => Number(s.saleYear) === year);
   }
 }
 
 export async function getAllSales() {
   await initDatabase();
-  if (isFirestoreReady) {
+  if (isStaffLoggedIn() && isFirestoreReady) {
     try {
       const { collection, getDocs } = firestoreModules;
       const snapshot = await getDocs(collection(db, 'sales'));
@@ -334,21 +337,31 @@ export async function getAllSales() {
       return list;
     } catch (err) {
       console.error('Firestore getAllSales error:', err);
-      return getLocalSales();
+      return getGuestSandboxSales();
     }
   } else {
-    return getLocalSales();
+    return getGuestSandboxSales();
   }
 }
 
 // --------------------------------------------------------------------------
-// LOCAL STORAGE HELPERS
+// GUEST SANDBOX HELPERS (LOCAL STORAGE)
 // --------------------------------------------------------------------------
 
-function getLocalProducts(activeOnly = false) {
+function getGuestSandboxProducts(activeOnly = false) {
   try {
-    const raw = localStorage.getItem(LS_PRODUCTS_KEY);
-    const list = raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(LS_GUEST_PRODUCTS_KEY);
+    let list = raw ? JSON.parse(raw) : null;
+    
+    // Auto-seed sandbox if empty
+    if (!list || list.length === 0) {
+      list = INITIAL_MENU.map((item, i) => ({
+        id: 'sandbox_seed_' + (i + 1),
+        ...item
+      }));
+      saveGuestSandboxProducts(list);
+    }
+
     const filtered = activeOnly ? list.filter(p => p.active !== false) : list;
     return sortProductsByCategory(filtered);
   } catch (e) {
@@ -356,19 +369,24 @@ function getLocalProducts(activeOnly = false) {
   }
 }
 
-function saveLocalProducts(products) {
-  localStorage.setItem(LS_PRODUCTS_KEY, JSON.stringify(products));
+function saveGuestSandboxProducts(products) {
+  localStorage.setItem(LS_GUEST_PRODUCTS_KEY, JSON.stringify(products));
 }
 
-function getLocalSales() {
+function getGuestSandboxSales() {
   try {
-    const raw = localStorage.getItem(LS_SALES_KEY);
+    const raw = localStorage.getItem(LS_GUEST_SALES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
   }
 }
 
-function saveLocalSales(sales) {
-  localStorage.setItem(LS_SALES_KEY, JSON.stringify(sales));
+function saveGuestSandboxSales(sales) {
+  localStorage.setItem(LS_GUEST_SALES_KEY, JSON.stringify(sales));
+}
+
+export function resetGuestSandbox() {
+  localStorage.removeItem(LS_GUEST_PRODUCTS_KEY);
+  localStorage.removeItem(LS_GUEST_SALES_KEY);
 }
