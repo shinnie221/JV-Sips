@@ -47,14 +47,39 @@ export async function initDatabase() {
       db = getFirestore(app);
       firestoreModules = { collection, doc, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp };
       isFirestoreReady = true;
+      updateHeaderStatus(true);
       return { isFirestore: true, db };
     } catch (err) {
       console.warn('⚠️ Firestore init fallback to sandbox mode:', err);
       isFirestoreReady = false;
+      updateHeaderStatus(false);
       return { isFirestore: false };
     }
   } else {
+    isFirestoreReady = false;
+    updateHeaderStatus(false);
     return { isFirestore: false };
+  }
+}
+
+/**
+ * Update the UI Header status indicator
+ */
+export function updateHeaderStatus(isOnline) {
+  const statusEl = document.getElementById('db-status');
+  if (!statusEl) return;
+  if (isOnline) {
+    statusEl.innerHTML = '<span class="db-status-dot"></span> Firebase Live';
+    statusEl.className = 'db-status-badge';
+    statusEl.style.background = 'var(--primary-light)';
+    statusEl.style.color = 'var(--primary-dark)';
+    statusEl.title = 'Connected to Firebase Firestore';
+  } else {
+    statusEl.innerHTML = '<span class="db-status-dot" style="background:var(--accent-mango)"></span> Local Sandbox';
+    statusEl.className = 'db-status-badge';
+    statusEl.style.background = 'var(--accent-mango-light)';
+    statusEl.style.color = '#b45309';
+    statusEl.title = 'Running in Demo Sandbox Mode';
   }
 }
 
