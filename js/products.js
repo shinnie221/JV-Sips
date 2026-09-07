@@ -6,7 +6,7 @@
 
 import { getProducts, addProduct, updateProduct, deleteProduct, toggleProductActive } from './db.js';
 import { seedInitialMenu } from './seed.js';
-import { formatRM, showToast, escapeHtml, getCategoryBadgeClass } from './utils.js';
+import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
 
 let allProducts = [];
 let activeCategory = 'all';
@@ -168,7 +168,7 @@ async function loadAndRenderProducts() {
 }
 
 function renderFilteredProducts() {
-  let filtered = [...allProducts];
+  let filtered = sortProductsByCategory(allProducts);
 
   // Category filter
   if (activeCategory !== 'all') {
@@ -198,53 +198,73 @@ function renderFilteredProducts() {
     return;
   }
 
-  productsGrid.innerHTML = filtered.map(p => {
-    const badgeClass = getCategoryBadgeClass(p.category);
-    const oatMilkInfo = p.allowOatMilk 
-      ? `<span class="oat-milk-badge-yes"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> Allowed (+${formatRM(p.oatMilkPrice || 2)})</span>`
-      : `<span class="oat-milk-badge-no">Not applicable</span>`;
+  const categoryGroups = groupProductsByCategory(filtered);
+
+  productsGrid.innerHTML = categoryGroups.map(group => {
+    const cardsHtml = group.items.map(p => {
+      const badgeClass = getCategoryBadgeClass(p.category);
+      const oatMilkInfo = p.allowOatMilk 
+        ? `<span class="oat-milk-badge-yes"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> Allowed (+${formatRM(p.oatMilkPrice || 2)})</span>`
+        : `<span class="oat-milk-badge-no">Not applicable</span>`;
+
+      return `
+        <div class="product-manage-card ${p.active ? '' : 'inactive'}" data-id="${escapeHtml(p.id)}">
+          <div class="product-card-top">
+            <div class="product-title-group">
+              <span class="badge ${badgeClass}" style="margin-bottom: 6px;">${escapeHtml(p.category)}</span>
+              <div class="product-name-en">${escapeHtml(p.name)}</div>
+              ${p.chineseName ? `<div class="product-name-cn">${escapeHtml(p.chineseName)}</div>` : ''}
+            </div>
+            <div class="product-price-badge">${formatRM(p.price)}</div>
+          </div>
+
+          <div class="product-details-list">
+            <div class="detail-row">
+              <span class="detail-label">Oat Milk Add-on:</span>
+              <span class="detail-val">${oatMilkInfo}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">POS Status:</span>
+              <span class="detail-val" style="color: ${p.active ? 'var(--primary-dark)' : 'var(--text-muted)'}">
+                ${p.active ? '● Active' : '○ Hidden'}
+              </span>
+            </div>
+          </div>
+
+          <div class="product-card-actions">
+            <label class="status-switch-wrapper" title="Toggle visibility on POS">
+              <span class="switch">
+                <input type="checkbox" class="toggle-status-checkbox" data-id="${escapeHtml(p.id)}" ${p.active ? 'checked' : ''}>
+                <span class="slider"></span>
+              </span>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">${p.active ? 'Active' : 'Disabled'}</span>
+            </label>
+
+            <div class="btn-group-actions">
+              <button class="btn-icon btn-edit" data-id="${escapeHtml(p.id)}" title="Edit Drink">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              </button>
+              <button class="btn-icon btn-delete" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}" title="Delete Drink" style="color: var(--danger);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
 
     return `
-      <div class="product-manage-card ${p.active ? '' : 'inactive'}" data-id="${escapeHtml(p.id)}">
-        <div class="product-card-top">
-          <div class="product-title-group">
-            <span class="badge ${badgeClass}" style="margin-bottom: 6px;">${escapeHtml(p.category)}</span>
-            <div class="product-name-en">${escapeHtml(p.name)}</div>
-            ${p.chineseName ? `<div class="product-name-cn">${escapeHtml(p.chineseName)}</div>` : ''}
+      <div class="product-category-group">
+        <div class="product-category-group-header">
+          <div class="product-category-group-title">
+            <span class="product-cat-icon">${group.emoji}</span>
+            <span class="product-cat-name">${escapeHtml(group.category)}</span>
+            ${group.chineseTitle ? `<span class="product-cat-cn">${escapeHtml(group.chineseTitle)}</span>` : ''}
           </div>
-          <div class="product-price-badge">${formatRM(p.price)}</div>
+          <span class="badge ${group.badgeClass}">${group.items.length} ${group.items.length === 1 ? 'item' : 'items'}</span>
         </div>
-
-        <div class="product-details-list">
-          <div class="detail-row">
-            <span class="detail-label">Oat Milk Add-on:</span>
-            <span class="detail-val">${oatMilkInfo}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">POS Status:</span>
-            <span class="detail-val" style="color: ${p.active ? 'var(--primary-dark)' : 'var(--text-muted)'}">
-              ${p.active ? '● Active' : '○ Hidden'}
-            </span>
-          </div>
-        </div>
-
-        <div class="product-card-actions">
-          <label class="status-switch-wrapper" title="Toggle visibility on POS">
-            <span class="switch">
-              <input type="checkbox" class="toggle-status-checkbox" data-id="${escapeHtml(p.id)}" ${p.active ? 'checked' : ''}>
-              <span class="slider"></span>
-            </span>
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">${p.active ? 'Active' : 'Disabled'}</span>
-          </label>
-
-          <div class="btn-group-actions">
-            <button class="btn-icon btn-edit" data-id="${escapeHtml(p.id)}" title="Edit Drink">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-            </button>
-            <button class="btn-icon btn-delete" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}" title="Delete Drink" style="color: var(--danger);">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-          </div>
+        <div class="product-category-group-grid">
+          ${cardsHtml}
         </div>
       </div>
     `;

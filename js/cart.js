@@ -4,11 +4,48 @@
  * ==========================================================================
  */
 
+const STORAGE_KEY = 'jv_sips_active_cart';
+
 class CartState {
   constructor() {
     this.items = []; // Array of line items
     this.discount = 0.00; // Fixed amount discount
     this.listeners = [];
+    this.loadFromStorage();
+  }
+
+  // Load saved in-progress cart from localStorage
+  loadFromStorage() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.items)) {
+          this.items = parsed.items;
+        }
+        if (typeof parsed.discount === 'number') {
+          this.discount = parsed.discount;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore cart from storage:', e);
+    }
+  }
+
+  // Save in-progress cart to localStorage
+  saveToStorage() {
+    try {
+      if (this.items.length === 0) {
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          items: this.items,
+          discount: this.discount
+        }));
+      }
+    } catch (e) {
+      console.warn('Could not save cart to storage:', e);
+    }
   }
 
   // Subscribe to cart changes
@@ -18,24 +55,28 @@ class CartState {
   }
 
   notify() {
+    this.saveToStorage();
     this.listeners.forEach(cb => cb(this));
   }
 
   /**
    * Add drink item to cart
    */
-  addItem({ productId, name, chineseName, category, basePrice, oatMilk = false, oatMilkPrice = 2, quantity = 1 }) {
+  addItem({ productId, name, chineseName, category, basePrice, oatMilk = false, oatMilkPrice = 2, remark = '', quantity = 1 }) {
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
     const unitPrice = oatMilk ? (basePrice + oatMilkPrice) : basePrice;
+    const cleanRemark = (remark || '').trim();
 
-    // Check if identical item already exists (same productId and same oatMilk option)
+    // Check if identical item already exists (same productId, oatMilk option, and remark)
     const existingIndex = this.items.findIndex(
-      item => item.productId === productId && item.oatMilk === Boolean(oatMilk)
+      item => item.productId === productId && 
+              item.oatMilk === Boolean(oatMilk) && 
+              (item.remark || '').trim() === cleanRemark
     );
 
     if (existingIndex > -1) {
       this.items[existingIndex].quantity += qty;
-      this.items[existingIndex].subtotal = this.items[existingIndex].quantity * unitPrice;
+      this.items[existingIndex].subtotal = Number((this.items[existingIndex].quantity * unitPrice).toFixed(2));
     } else {
       this.items.push({
         cartItemId: 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
@@ -46,6 +87,7 @@ class CartState {
         basePrice: Number(basePrice.toFixed(2)),
         oatMilk: Boolean(oatMilk),
         oatMilkPrice: oatMilk ? Number(oatMilkPrice.toFixed(2)) : 0,
+        remark: cleanRemark,
         unitPrice: Number(unitPrice.toFixed(2)),
         quantity: qty,
         subtotal: Number((qty * unitPrice).toFixed(2))

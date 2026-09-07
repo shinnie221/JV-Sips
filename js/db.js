@@ -5,6 +5,7 @@
  */
 
 import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
+import { sortProductsByCategory } from './utils.js';
 
 // Firebase imports (loaded dynamically from official CDN)
 let db = null;
@@ -101,7 +102,7 @@ export async function getProducts(activeOnly = false) {
       snapshot.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() });
       });
-      return list;
+      return sortProductsByCategory(list);
     } catch (err) {
       console.error('Firestore getProducts error:', err);
       return getLocalProducts(activeOnly);
@@ -348,10 +349,8 @@ function getLocalProducts(activeOnly = false) {
   try {
     const raw = localStorage.getItem(LS_PRODUCTS_KEY);
     const list = raw ? JSON.parse(raw) : [];
-    if (activeOnly) {
-      return list.filter(p => p.active !== false);
-    }
-    return list;
+    const filtered = activeOnly ? list.filter(p => p.active !== false) : list;
+    return sortProductsByCategory(filtered);
   } catch (e) {
     return [];
   }

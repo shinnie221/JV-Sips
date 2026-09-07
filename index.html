@@ -2,18 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=pages/pos.html">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>JV Sips - POS & Sales Management</title>
+  
+  <!-- PWA & iOS App Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JV Sips">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#10b981">
+
+  <meta http-equiv="refresh" content="0; url=pages/pos.html">
   <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration skipped:', err));
+      });
+    }
     window.location.href = "pages/pos.html";
   </script>
 </head>
-<body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #334155;">
+<body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc;">
   <div style="text-align: center;">
-    <h2 style="margin-bottom: 8px;">JV Sips POS</h2>
-    <p>Redirecting to Point of Sale...</p>
-    <p style="font-size: 0.85rem; color: #64748b;">If you are not redirected automatically, <a href="pages/pos.html" style="color: #10b981; font-weight: bold;">click here</a>.</p>
+    <h2 style="margin-bottom: 8px; color: #10b981;">JV Sips POS</h2>
+    <p>Opening Point of Sale...</p>
+    <p style="font-size: 0.85rem; color: #94a3b8;">If you are not redirected automatically, <a href="pages/pos.html" style="color: #10b981; font-weight: bold;">click here</a>.</p>
   </div>
 </body>
 </html>

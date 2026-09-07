@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/", "destination": "/pages/pos.html" },
+    { "source": "/pos", "destination": "/pages/pos.html" },
+    { "source": "/products", "destination": "/pages/products.html" },
+    { "source": "/reports", "destination": "/pages/reports.html" },
+    { "source": "/pages/pos", "destination": "/pages/pos.html" },
+    { "source": "/pages/products", "destination": "/pages/products.html" },
+    { "source": "/pages/reports", "destination": "/pages/reports.html" }
+  ]
+}

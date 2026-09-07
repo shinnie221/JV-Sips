@@ -136,3 +136,103 @@ export function escapeHtml(str) {
     }
   });
 }
+
+// Standard category ordering
+export const CATEGORY_ORDER = [
+  'mango series',
+  'blueberry series',
+  'green grape series'
+];
+
+export function getCategoryEmoji(category) {
+  if (!category) return '🍵';
+  const cat = category.toLowerCase();
+  if (cat.includes('mango')) return '🥭';
+  if (cat.includes('blueberry')) return '🫐';
+  if (cat.includes('grape')) return '🍇';
+  if (cat.includes('tea')) return '🧋';
+  if (cat.includes('coffee')) return '☕';
+  return '🍵';
+}
+
+export function getCategoryChineseTitle(category) {
+  if (!category) return '';
+  const cat = category.toLowerCase();
+  if (cat.includes('mango')) return '芒果系列';
+  if (cat.includes('blueberry')) return '蓝莓系列';
+  if (cat.includes('grape')) return '青提系列';
+  return '';
+}
+
+/**
+ * Sort products array according to category order, then item name/type
+ * @param {Array} products 
+ * @returns {Array} sorted products array
+ */
+export function sortProductsByCategory(products) {
+  if (!Array.isArray(products)) return [];
+  return [...products].sort((a, b) => {
+    const catA = (a.category || '').trim().toLowerCase();
+    const catB = (b.category || '').trim().toLowerCase();
+
+    let indexA = CATEGORY_ORDER.indexOf(catA);
+    let indexB = CATEGORY_ORDER.indexOf(catB);
+
+    if (indexA === -1) indexA = 999;
+    if (indexB === -1) indexB = 999;
+
+    if (indexA !== indexB) {
+      if (indexA === 999 && indexB === 999) {
+        return catA.localeCompare(catB);
+      }
+      return indexA - indexB;
+    }
+
+    // Secondary sort within the same category:
+    // Soda drinks before Milk drinks
+    const nameA = (a.name || '').toLowerCase();
+    const nameB = (b.name || '').toLowerCase();
+    const isSodaA = nameA.includes('soda');
+    const isSodaB = nameB.includes('soda');
+    if (isSodaA && !isSodaB) return -1;
+    if (!isSodaA && isSodaB) return 1;
+
+    // Price ascending
+    const priceA = parseFloat(a.price) || 0;
+    const priceB = parseFloat(b.price) || 0;
+    if (priceA !== priceB) {
+      return priceA - priceB;
+    }
+
+    // Alphabetical by name
+    return nameA.localeCompare(nameB);
+  });
+}
+
+/**
+ * Group an array of products into ordered categories with metadata
+ * @param {Array} products 
+ * @returns {Array<{category: string, chineseTitle: string, emoji: string, badgeClass: string, items: Array}>}
+ */
+export function groupProductsByCategory(products) {
+  const sorted = sortProductsByCategory(products);
+  const groupsMap = new Map();
+
+  for (const item of sorted) {
+    const cat = item.category || 'Other';
+    if (!groupsMap.has(cat)) {
+      groupsMap.set(cat, {
+        category: cat,
+        chineseTitle: getCategoryChineseTitle(cat),
+        emoji: getCategoryEmoji(cat),
+        badgeClass: getCategoryBadgeClass(cat),
+        items: []
+      });
+    }
+    groupsMap.get(cat).items.push(item);
+  }
+
+  return Array.from(groupsMap.values());
+}
+
+

@@ -204,7 +204,7 @@ function renderDailyData(sales) {
   dailyTransactionsTbody.innerHTML = sales.map(s => {
     const timeFormatted = formatTimeDisplay(s.createdAt);
     const itemsSummary = (s.items || []).map(i => 
-      `${i.quantity}× ${escapeHtml(i.name)}${i.oatMilk ? ' (Oat Milk)' : ''}`
+      `${i.quantity}× ${escapeHtml(i.name)}${i.oatMilk ? ' (Oat Milk)' : ''}${i.remark ? ` [${escapeHtml(i.remark)}]` : ''}`
     ).join(', ');
 
     const methodClass = s.paymentMethod === 'cash' ? 'method-cash' : 'method-qr';

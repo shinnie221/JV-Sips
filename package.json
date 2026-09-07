@@ -1,0 +1,14 @@
+{
+  "name": "jv-sips",
+  "version": "1.0.0",
+  "description": "JV Sips - Point of Sale & Beverage Management System",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -l 3000",
+    "serve": "npx serve . -l 3000"
+  },
+  "keywords": ["pos", "fnb", "beverage", "drinks", "pwa"],
+  "author": "JV Sips",
+  "license": "MIT"
+}

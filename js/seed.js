@@ -80,7 +80,7 @@ export async function seedInitialMenu(clearExisting = false) {
       await deleteProduct(p.id);
     }
   } else if (!clearExisting && existing.length > 0) {
-    return { success: false, count: 0, message: 'Products already exist. Pass clearExisting=true to reset.' };
+    return { success: true, count: existing.length, message: 'Products are already loaded in database!' };
   }
 
   let count = 0;

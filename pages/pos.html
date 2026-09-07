@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>JV Sips - Point of Sale</title>
+  <!-- PWA & iOS App Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JV Sips">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#10b981">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/main.css">
-  <link rel="stylesheet" href="../css/pos.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/pos.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW reg failed:', err));
+      });
+    }
+  </script>
 </head>
 <body>
 
@@ -23,17 +38,17 @@
     </div>
 
     <nav class="nav-links">
-      <a href="pos.html" class="nav-item active">
+      <a href="/pages/pos.html" class="nav-item active">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
         POS Order
       </a>
-      <a href="products.html" class="nav-item">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+      <a href="/pages/products.html" class="nav-item">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
         Products
       </a>
-      <a href="reports.html" class="nav-item">
+      <a href="/pages/reports.html" class="nav-item">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-        Sales Reports
+        Reports
       </a>
     </nav>
 
@@ -71,16 +86,38 @@
             <!-- Rendered dynamically -->
           </div>
         </div>
+        <!-- Mobile Floating Cart Bottom Bar (Visible on phones) -->
+        <div id="mobile-cart-bar" class="mobile-cart-bar">
+          <div class="mobile-cart-bar-left">
+            <div class="mobile-cart-badge-icon">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              <span id="mobile-cart-count" class="mobile-badge-num">0</span>
+            </div>
+            <div>
+              <div id="mobile-cart-total" class="mobile-bar-total">RM 0.00</div>
+              <div class="mobile-bar-subtext">Tap to view order & pay</div>
+            </div>
+          </div>
+          <button type="button" id="btn-open-mobile-cart" class="btn-mobile-view-order">
+            View Order ➔
+          </button>
+        </div>
       </section>
 
+      <!-- Mobile Cart Drawer Backdrop -->
+      <div id="pos-cart-backdrop" class="pos-cart-backdrop"></div>
+
       <!-- RIGHT: Shopping Cart / Current Order Section -->
-      <aside class="pos-cart-section">
+      <aside id="pos-cart-section" class="pos-cart-section">
         <div class="cart-header">
           <div class="cart-title-wrapper">
             <h2 class="cart-title">Current Order</h2>
             <span id="cart-count-badge" class="cart-badge-count">0 items</span>
           </div>
-          <button id="btn-clear-cart" class="btn-clear-cart" title="Clear all items in cart">Clear Cart</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="btn-clear-cart" class="btn-clear-cart" title="Clear all items in cart">Clear Cart</button>
+            <button type="button" id="btn-close-mobile-cart" class="btn-close-mobile-cart" aria-label="Close cart">&times;</button>
+          </div>
         </div>
 
         <!-- Cart Items List -->
@@ -183,6 +220,19 @@
               </div>
             </div>
             <div id="cust-oatmilk-surcharge" class="addon-price-tag">+RM 2.00</div>
+          </div>
+        </div>
+
+        <!-- Remark / Special Notes Section -->
+        <div class="form-group" style="margin-top: 16px;">
+          <div class="modal-section-label">Remark / Special Request</div>
+          <input type="text" id="cust-remark-input" class="form-input" placeholder="e.g. Less Ice, No Sugar, Separate bag..." maxlength="80">
+          <div id="cust-quick-remarks" class="quick-remarks-list">
+            <button type="button" class="remark-chip" data-text="Less Ice">🧊 Less Ice (少冰)</button>
+            <button type="button" class="remark-chip" data-text="No Ice">🚫 No Ice (去冰)</button>
+            <button type="button" class="remark-chip" data-text="Less Sugar">🍯 Less Sweet (少糖)</button>
+            <button type="button" class="remark-chip" data-text="No Sugar">0% Sugar (无糖)</button>
+            <button type="button" class="remark-chip" data-text="Warm">♨️ Warm (温)</button>
           </div>
         </div>
 
@@ -299,6 +349,6 @@
   </div>
 
   <!-- Scripts -->
-  <script type="module" src="../js/pos.js"></script>
+  <script type="module" src="/js/pos.js"></script>
 </body>
 </html>

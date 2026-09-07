@@ -82,7 +82,7 @@ button, input, select, textarea {
 
 /* Top Navigation Header */
 .app-header {
-  height: var(--header-height);
+  height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
@@ -91,7 +91,7 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: env(safe-area-inset-top, 0px) 24px 0 24px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -307,6 +307,7 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   opacity: 0;
   visibility: hidden;
   transition: all 0.25s ease;
@@ -323,7 +324,8 @@ button, input, select, textarea {
   box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -331,16 +333,25 @@ button, input, select, textarea {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-backdrop.active .modal-card {
   transform: translateY(0) scale(1);
 }
 
 .modal-header {
-  padding: 18px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -360,18 +371,22 @@ button, input, select, textarea {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
-  padding: 16px 24px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-subtle);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 /* Form Controls */

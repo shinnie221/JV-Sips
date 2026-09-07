@@ -115,10 +115,54 @@
 
 /* Product Cards Grid */
 .products-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  margin-bottom: 32px;
+  width: 100%;
+}
+
+.product-category-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.product-category-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.product-category-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.product-cat-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.product-cat-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.product-cat-cn {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.product-category-group-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
-  margin-bottom: 32px;
 }
 
 .product-manage-card {
@@ -308,3 +352,81 @@ input:checked + .slider:before {
   margin: 0 auto 20px;
   font-size: 0.9rem;
 }
+
+/* Oat Milk Modal Addon Toggle Card */
+.addon-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addon-toggle-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.addon-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addon-info-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.addon-info-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .products-page {
+    padding: 12px 14px 40px 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .controls-bar {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
