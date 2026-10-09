@@ -228,9 +228,12 @@ function renderDailyData(sales) {
 
   dailyTransactionsTbody.innerHTML = sales.map(s => {
     const timeFormatted = formatTimeDisplay(s.createdAt);
-    const itemsSummary = (s.items || []).map(i => 
-      `${i.quantity}× ${escapeHtml(i.name)}${i.oatMilk ? ' (Oat Milk)' : ''}${i.remark ? ` [${escapeHtml(i.remark)}]` : ''}`
-    ).join(', ');
+    const itemsSummary = (s.items || []).map(i => {
+      const addonText = (i.selectedAddons && i.selectedAddons.length > 0)
+        ? ` (+${i.selectedAddons.map(a => a.name).join(', ')})`
+        : (i.oatMilk ? ' (Oat Milk)' : '');
+      return `${i.quantity}× ${escapeHtml(i.name)}${addonText}${i.remark ? ` [${escapeHtml(i.remark)}]` : ''}`;
+    }).join(', ');
 
     const methodClass = s.paymentMethod === 'cash' ? 'method-cash' : 'method-qr';
     const methodLabel = s.paymentMethod === 'cash' ? 'Cash' : 'QR';

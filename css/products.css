@@ -371,6 +371,11 @@ input:checked + .slider:before {
   border-color: #cbd5e1;
 }
 
+.addon-toggle-card.selected {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
 .addon-toggle-left {
   display: flex;
   align-items: center;
@@ -393,6 +398,141 @@ input:checked + .slider:before {
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-top: 4px;
+}
+
+/* Add-on Builder in Product Modal */
+.addon-quick-suggestions {
+  margin-bottom: 12px;
+}
+
+.addon-quick-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.addon-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-addon-chip {
+  background: var(--bg-surface);
+  border: 1px dashed #cbd5e1;
+  color: var(--text-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.preset-addon-chip:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: var(--primary);
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+.addon-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.addon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.addon-row .addon-name-input {
+  flex: 2;
+  height: 38px;
+  font-size: 0.88rem;
+}
+
+.addon-price-input-wrapper {
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.addon-curr-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.addon-row .addon-price-input {
+  width: 100%;
+  height: 38px;
+  padding-left: 42px;
+  font-size: 0.88rem;
+}
+
+.btn-remove-addon-row {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-remove-addon-row:hover {
+  color: var(--danger);
+  background: var(--danger-light);
+}
+
+/* Addon badges in product management card */
+.product-addon-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.addon-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.addon-badge-dot {
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 /* Mobile Responsive */

@@ -210,6 +210,8 @@ function ensureStaffModalInDOM() {
         msg = 'Invalid email or password. Please verify your staff credentials.';
       } else if (msg.includes('too-many-requests')) {
         msg = 'Too many failed login attempts. Please try again later.';
+      } else if (msg.includes('requests-from-referer') || msg.includes('referer') || msg.includes('blocked')) {
+        msg = 'Requests from this port are blocked by Firebase API Key restrictions. Please open the app at http://localhost:3000, or add your current port to allowed referrers in Google Cloud Console.';
       }
       errorEl.textContent = msg;
       errorEl.style.display = 'block';

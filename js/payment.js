@@ -237,6 +237,21 @@ function displayReceiptModal(sale, isOfficialSale = true) {
   receiptTotal.textContent = formatRM(sale.total);
   receiptMethod.textContent = sale.paymentMethod === 'cash' ? 'Cash Payment' : 'QR Payment';
 
+  const receiptItemsList = document.getElementById('receipt-items-list');
+  if (receiptItemsList && Array.isArray(sale.items)) {
+    receiptItemsList.innerHTML = sale.items.map(item => {
+      const addons = (item.selectedAddons && item.selectedAddons.length > 0)
+        ? ` <span style="color: var(--primary-dark); font-weight: 600; font-size: 0.76rem;">(+${item.selectedAddons.map(a => a.name).join(', ')})</span>`
+        : (item.oatMilk ? ' <span style="color: var(--primary-dark); font-weight: 600; font-size: 0.76rem;">(+Oat Milk)</span>' : '');
+      return `
+        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; gap: 8px;">
+          <span>${item.quantity}× ${escapeHtml(item.name)}${addons}</span>
+          <span style="font-weight:700; white-space: nowrap;">${formatRM(item.subtotal)}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
   if (sale.paymentMethod === 'cash') {
     receiptCashRow.style.display = 'flex';
     receiptCashReceived.textContent = formatRM(sale.cashReceived);

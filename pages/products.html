@@ -142,24 +142,45 @@
             <input type="number" id="prod-price" class="form-input" placeholder="12.00" step="0.50" min="0" required>
           </div>
 
-          <!-- Oat Milk Add-on Tick Section -->
+          <!-- Add-on Options Section -->
           <div class="form-group">
-            <label class="form-label">Oat Milk Add-on Option</label>
-            <div id="oatmilk-toggle-box" class="addon-toggle-card" style="margin-bottom: 12px;">
+            <label class="form-label">Add-on Options</label>
+            <div id="addon-toggle-box" class="addon-toggle-card" style="margin-bottom: 12px;">
               <div class="addon-toggle-left">
-                <input type="checkbox" id="prod-allow-oatmilk" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;">
+                <input type="checkbox" id="prod-allow-addon" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;">
                 <div>
-                  <div class="addon-info-title">Enable Oat Milk Add-on</div>
-                  <div class="addon-info-subtitle">Check this for milk-based drinks that allow customers to choose Oat Milk</div>
+                  <div class="addon-info-title">Enable Add-on Options</div>
+                  <div class="addon-info-subtitle">Allow customers to choose add-ons for this product (e.g. Oat Milk, Pearls, Coconut Jelly)</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div id="oatmilk-price-group" class="form-group" style="display: none; padding-left: 12px; border-left: 3px solid var(--primary);">
-            <label class="form-label" for="prod-oatmilk-price">Oat Milk Additional Price (RM)</label>
-            <input type="number" id="prod-oatmilk-price" class="form-input" value="2.00" step="0.50" min="0">
-            <div class="form-hint">Standard add-on price is RM 2.00</div>
+          <div id="addon-manager-group" class="form-group" style="display: none; padding: 14px; background: var(--bg-subtle); border-radius: var(--radius-md); border-left: 3px solid var(--primary); margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <label class="form-label" style="margin-bottom: 0; font-size: 0.9rem;">Add-on Items & Pricing</label>
+              <button type="button" id="btn-add-addon-row" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; padding: 5px 12px; display: inline-flex; align-items: center; gap: 5px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                <span>Add Item</span>
+              </button>
+            </div>
+            
+            <div class="addon-quick-suggestions">
+              <span class="addon-quick-label">Quick Suggestions (Click to Add):</span>
+              <div class="addon-preset-chips">
+                <button type="button" class="preset-addon-chip" data-name="Oat Milk" data-price="2.00">+ Oat Milk (RM 2.00)</button>
+                <button type="button" class="preset-addon-chip" data-name="Pearls" data-price="1.50">+ Pearls (RM 1.50)</button>
+                <button type="button" class="preset-addon-chip" data-name="Coconut Jelly" data-price="1.50">+ Coconut Jelly (RM 1.50)</button>
+                <button type="button" class="preset-addon-chip" data-name="Cheese Foam" data-price="2.00">+ Cheese Foam (RM 2.00)</button>
+                <button type="button" class="preset-addon-chip" data-name="Pudding" data-price="1.50">+ Pudding (RM 1.50)</button>
+                <button type="button" class="preset-addon-chip" data-name="Grass Jelly" data-price="1.50">+ Grass Jelly (RM 1.50)</button>
+              </div>
+            </div>
+
+            <div id="addon-items-container" class="addon-items-container">
+              <!-- Dynamically populated rows -->
+            </div>
+            <div class="form-hint" style="margin-top: 8px;">Fill in your own custom add-on item name and set the additional price (RM).</div>
           </div>
 
           <div class="form-group" style="margin-top: 20px;">

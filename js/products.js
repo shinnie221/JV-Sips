@@ -6,7 +6,7 @@
 
 import { getProducts, addProduct, updateProduct, deleteProduct, toggleProductActive } from './db.js';
 import { seedInitialMenu } from './seed.js';
-import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
+import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory, getProductAddons } from './utils.js';
 import { initAuthHeader, isStaffLoggedIn, onStaffAuthStateChanged } from './auth.js';
 
 let allProducts = [];
@@ -32,10 +32,11 @@ const inputName = document.getElementById('prod-name');
 const inputChineseName = document.getElementById('prod-chinese-name');
 const inputCategory = document.getElementById('prod-category');
 const inputPrice = document.getElementById('prod-price');
-const checkAllowOatMilk = document.getElementById('prod-allow-oatmilk');
-const oatmilkToggleBox = document.getElementById('oatmilk-toggle-box');
-const oatmilkPriceGroup = document.getElementById('oatmilk-price-group');
-const inputOatMilkPrice = document.getElementById('prod-oatmilk-price');
+const checkAllowAddon = document.getElementById('prod-allow-addon');
+const addonToggleBox = document.getElementById('addon-toggle-box');
+const addonManagerGroup = document.getElementById('addon-manager-group');
+const btnAddAddonRow = document.getElementById('btn-add-addon-row');
+const addonItemsContainer = document.getElementById('addon-items-container');
 const checkActive = document.getElementById('prod-active');
 const activeLabel = document.getElementById('prod-active-label');
 
@@ -75,16 +76,56 @@ function setupEventListeners() {
     renderFilteredProducts();
   });
 
-  // Oat Milk tick toggle behavior in modal
-  checkAllowOatMilk.addEventListener('change', () => {
-    toggleOatMilkInputs(checkAllowOatMilk.checked);
+  // Add-on options checkbox toggle
+  checkAllowAddon.addEventListener('change', () => {
+    toggleAddonManager(checkAllowAddon.checked);
   });
 
-  oatmilkToggleBox.addEventListener('click', (e) => {
-    if (e.target !== checkAllowOatMilk) {
-      checkAllowOatMilk.checked = !checkAllowOatMilk.checked;
-      toggleOatMilkInputs(checkAllowOatMilk.checked);
+  addonToggleBox.addEventListener('click', (e) => {
+    if (e.target !== checkAllowAddon) {
+      checkAllowAddon.checked = !checkAllowAddon.checked;
+      toggleAddonManager(checkAllowAddon.checked);
     }
+  });
+
+  // Add Item button
+  btnAddAddonRow.addEventListener('click', () => {
+    const newRow = createAddonRow('', '1.50');
+    addonItemsContainer.appendChild(newRow);
+    const nameInput = newRow.querySelector('.addon-name-input');
+    if (nameInput) nameInput.focus();
+  });
+
+  // Preset chips click
+  document.querySelectorAll('.preset-addon-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const name = chip.dataset.name;
+      const price = chip.dataset.price;
+      if (!checkAllowAddon.checked) {
+        checkAllowAddon.checked = true;
+        toggleAddonManager(true);
+      }
+      
+      const existingInputs = Array.from(addonItemsContainer.querySelectorAll('.addon-name-input'));
+      const found = existingInputs.find(inp => inp.value.trim().toLowerCase() === name.toLowerCase());
+      if (found) {
+        found.focus();
+        showToast(`"${name}" is already in the list.`, 'info');
+        return;
+      }
+
+      // If there's an existing blank single row, fill it
+      if (existingInputs.length === 1 && !existingInputs[0].value.trim()) {
+        existingInputs[0].value = name;
+        const row = existingInputs[0].closest('.addon-row');
+        const priceInput = row.querySelector('.addon-price-input');
+        if (priceInput) priceInput.value = parseFloat(price).toFixed(2);
+      } else {
+        const row = createAddonRow(name, price);
+        addonItemsContainer.appendChild(row);
+      }
+      showToast(`Added ${name} (+RM ${parseFloat(price).toFixed(2)})`, 'success', 2000);
+    });
   });
 
   // Active checkbox label change
@@ -140,16 +181,66 @@ function setupEventListeners() {
   btnConfirmDelete.addEventListener('click', handleConfirmDelete);
 }
 
-function toggleOatMilkInputs(isChecked) {
+function createAddonRow(name = '', price = '1.50') {
+  const row = document.createElement('div');
+  row.className = 'addon-row';
+  row.innerHTML = `
+    <input type="text" class="form-input addon-name-input" placeholder="e.g. Grass Jelly, Pearls" value="${escapeHtml(name)}">
+    <div class="addon-price-input-wrapper">
+      <span class="addon-curr-prefix">+RM</span>
+      <input type="number" class="form-input addon-price-input" placeholder="1.50" step="0.50" min="0" value="${price !== '' ? Number(price).toFixed(2) : '1.50'}">
+    </div>
+    <button type="button" class="btn-remove-addon-row" title="Remove add-on">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+    </button>
+  `;
+
+  row.querySelector('.btn-remove-addon-row').addEventListener('click', () => {
+    row.remove();
+  });
+
+  return row;
+}
+
+function renderAddonRows(addons = []) {
+  addonItemsContainer.innerHTML = '';
+  if (!addons || addons.length === 0) {
+    addonItemsContainer.appendChild(createAddonRow('', '1.50'));
+  } else {
+    addons.forEach(a => {
+      addonItemsContainer.appendChild(createAddonRow(a.name, a.price));
+    });
+  }
+}
+
+function getAddonRowsData() {
+  const rows = addonItemsContainer.querySelectorAll('.addon-row');
+  const list = [];
+  rows.forEach(r => {
+    const nameInput = r.querySelector('.addon-name-input');
+    const priceInput = r.querySelector('.addon-price-input');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const price = priceInput ? parseFloat(priceInput.value) || 0 : 0;
+    if (name) {
+      list.push({
+        name,
+        price: Number(price.toFixed(2))
+      });
+    }
+  });
+  return list;
+}
+
+function toggleAddonManager(isChecked) {
   if (isChecked) {
-    oatmilkPriceGroup.style.display = 'block';
-    oatmilkToggleBox.classList.add('selected');
-    if (!inputOatMilkPrice.value || parseFloat(inputOatMilkPrice.value) <= 0) {
-      inputOatMilkPrice.value = '2.00';
+    addonManagerGroup.style.display = 'block';
+    addonToggleBox.classList.add('selected');
+    if (addonItemsContainer.children.length === 0) {
+      renderAddonRows([]);
     }
   } else {
-    oatmilkPriceGroup.style.display = 'none';
-    oatmilkToggleBox.classList.remove('selected');
+    addonManagerGroup.style.display = 'none';
+    addonToggleBox.classList.remove('selected');
   }
 }
 
@@ -213,9 +304,10 @@ function renderFilteredProducts() {
   productsGrid.innerHTML = categoryGroups.map(group => {
     const cardsHtml = group.items.map(p => {
       const badgeClass = getCategoryBadgeClass(p.category);
-      const oatMilkInfo = p.allowOatMilk 
-        ? `<span class="oat-milk-badge-yes"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> Allowed (+${formatRM(p.oatMilkPrice || 2)})</span>`
-        : `<span class="oat-milk-badge-no">Not applicable</span>`;
+      const addons = getProductAddons(p);
+      const addonsInfo = addons.length > 0 
+        ? `<div class="product-addon-badges">${addons.map(a => `<span class="addon-badge-item"><span class="addon-badge-dot">✓</span> ${escapeHtml(a.name)} (+${formatRM(a.price)})</span>`).join('')}</div>`
+        : `<span class="oat-milk-badge-no">No add-ons</span>`;
 
       return `
         <div class="product-manage-card ${p.active ? '' : 'inactive'}" data-id="${escapeHtml(p.id)}">
@@ -230,8 +322,8 @@ function renderFilteredProducts() {
 
           <div class="product-details-list">
             <div class="detail-row">
-              <span class="detail-label">Oat Milk Add-on:</span>
-              <span class="detail-val">${oatMilkInfo}</span>
+              <span class="detail-label">Add-ons:</span>
+              <span class="detail-val">${addonsInfo}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">POS Status:</span>
@@ -321,8 +413,9 @@ function openProductModal(mode = 'add', productId = null) {
     modalTitle.textContent = 'Add New Product';
     inputId.value = '';
     inputPrice.value = '';
-    checkAllowOatMilk.checked = false;
-    toggleOatMilkInputs(false);
+    checkAllowAddon.checked = false;
+    toggleAddonManager(false);
+    addonItemsContainer.innerHTML = '';
     checkActive.checked = true;
     activeLabel.textContent = 'Active (Available on POS)';
   } else {
@@ -335,9 +428,18 @@ function openProductModal(mode = 'add', productId = null) {
     inputChineseName.value = prod.chineseName || '';
     inputCategory.value = prod.category;
     inputPrice.value = prod.price;
-    checkAllowOatMilk.checked = Boolean(prod.allowOatMilk);
-    toggleOatMilkInputs(prod.allowOatMilk);
-    inputOatMilkPrice.value = prod.oatMilkPrice !== undefined ? prod.oatMilkPrice : '2.00';
+
+    const addons = getProductAddons(prod);
+    if (addons.length > 0) {
+      checkAllowAddon.checked = true;
+      toggleAddonManager(true);
+      renderAddonRows(addons);
+    } else {
+      checkAllowAddon.checked = false;
+      toggleAddonManager(false);
+      addonItemsContainer.innerHTML = '';
+    }
+
     checkActive.checked = prod.active !== false;
     activeLabel.textContent = checkActive.checked ? 'Active (Available on POS)' : 'Inactive (Hidden from POS)';
   }
@@ -358,8 +460,6 @@ async function handleProductFormSubmit(e) {
   const chineseName = inputChineseName.value.trim();
   const category = inputCategory.value.trim();
   const price = parseFloat(inputPrice.value);
-  const allowOatMilk = checkAllowOatMilk.checked;
-  const oatMilkPrice = allowOatMilk ? parseFloat(inputOatMilkPrice.value) || 2 : 0;
   const active = checkActive.checked;
 
   if (!name || !category || isNaN(price) || price < 0) {
@@ -367,11 +467,32 @@ async function handleProductFormSubmit(e) {
     return;
   }
 
+  let addons = [];
+  if (checkAllowAddon.checked) {
+    const rows = addonItemsContainer.querySelectorAll('.addon-row');
+    let hasEmptyRow = false;
+    rows.forEach(r => {
+      const n = r.querySelector('.addon-name-input').value.trim();
+      if (!n) hasEmptyRow = true;
+    });
+
+    addons = getAddonRowsData();
+    if (addons.length === 0 && rows.length > 0 && hasEmptyRow) {
+      showToast('Please enter a name for the add-on item, or remove the empty row.', 'warning');
+      return;
+    }
+  }
+
+  const allowOatMilk = addons.some(a => a.name.toLowerCase().includes('oat'));
+  const oatMilkItem = addons.find(a => a.name.toLowerCase().includes('oat'));
+  const oatMilkPrice = oatMilkItem ? oatMilkItem.price : 2.00;
+
   const payload = {
     name,
     chineseName,
     category,
     price,
+    addons,
     allowOatMilk,
     oatMilkPrice,
     active

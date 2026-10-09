@@ -13,6 +13,7 @@ export const INITIAL_MENU = [
     chineseName: "芒果青柠气泡水",
     category: "Mango Series",
     price: 10.00,
+    addons: [],
     allowOatMilk: false,
     oatMilkPrice: 0,
     active: true
@@ -22,6 +23,9 @@ export const INITIAL_MENU = [
     chineseName: "芒果牛奶",
     category: "Mango Series",
     price: 12.00,
+    addons: [
+      { name: "Oat Milk", price: 2.00 }
+    ],
     allowOatMilk: true,
     oatMilkPrice: 2.00,
     active: true
@@ -33,6 +37,7 @@ export const INITIAL_MENU = [
     chineseName: "蓝莓柠檬气泡水",
     category: "Blueberry Series",
     price: 10.00,
+    addons: [],
     allowOatMilk: false,
     oatMilkPrice: 0,
     active: true
@@ -42,6 +47,9 @@ export const INITIAL_MENU = [
     chineseName: "蓝莓牛奶",
     category: "Blueberry Series",
     price: 12.00,
+    addons: [
+      { name: "Oat Milk", price: 2.00 }
+    ],
     allowOatMilk: true,
     oatMilkPrice: 2.00,
     active: true
@@ -53,6 +61,7 @@ export const INITIAL_MENU = [
     chineseName: "青提柠檬气泡水",
     category: "Green Grape Series",
     price: 10.00,
+    addons: [],
     allowOatMilk: false,
     oatMilkPrice: 0,
     active: true
@@ -62,6 +71,9 @@ export const INITIAL_MENU = [
     chineseName: "青提牛奶",
     category: "Green Grape Series",
     price: 12.00,
+    addons: [
+      { name: "Oat Milk", price: 2.00 }
+    ],
     allowOatMilk: true,
     oatMilkPrice: 2.00,
     active: true

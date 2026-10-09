@@ -60,19 +60,49 @@ class CartState {
   }
 
   /**
-   * Add drink item to cart
+   * Add drink item to cart with custom selected add-ons
    */
-  addItem({ productId, name, chineseName, category, basePrice, oatMilk = false, oatMilkPrice = 2, remark = '', quantity = 1 }) {
+  addItem({ productId, name, chineseName, category, basePrice, oatMilk = false, oatMilkPrice = 2, selectedAddons = [], remark = '', quantity = 1 }) {
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
-    const unitPrice = oatMilk ? (basePrice + oatMilkPrice) : basePrice;
     const cleanRemark = (remark || '').trim();
 
-    // Check if identical item already exists (same productId, oatMilk option, and remark)
-    const existingIndex = this.items.findIndex(
-      item => item.productId === productId && 
-              item.oatMilk === Boolean(oatMilk) && 
-              (item.remark || '').trim() === cleanRemark
-    );
+    // Normalize selected addons
+    let addons = [];
+    if (Array.isArray(selectedAddons) && selectedAddons.length > 0) {
+      addons = selectedAddons.map(a => ({
+        name: a.name.trim(),
+        price: Number((parseFloat(a.price) || 0).toFixed(2))
+      }));
+    } else if (oatMilk) {
+      addons = [{
+        name: 'Oat Milk',
+        price: Number((parseFloat(oatMilkPrice || 2)).toFixed(2))
+      }];
+    }
+
+    // Sort addons by name for stable comparison
+    addons.sort((a, b) => a.name.localeCompare(b.name));
+
+    const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);
+    const unitPrice = Number((basePrice + addonsTotal).toFixed(2));
+
+    const hasOatMilk = addons.some(a => a.name.toLowerCase().includes('oat')) || Boolean(oatMilk);
+    const oatItem = addons.find(a => a.name.toLowerCase().includes('oat'));
+    const resolvedOatMilkPrice = oatItem ? oatItem.price : (oatMilk ? Number((parseFloat(oatMilkPrice || 2)).toFixed(2)) : 0);
+
+    const addonsKey = addons.map(a => `${a.name}:${a.price}`).join('|');
+
+    // Check if identical item already exists (same productId, same addons, same remark)
+    const existingIndex = this.items.findIndex(item => {
+      if (item.productId !== productId) return false;
+      if ((item.remark || '').trim() !== cleanRemark) return false;
+      
+      const itemAddons = Array.isArray(item.selectedAddons) 
+        ? [...item.selectedAddons] 
+        : (item.oatMilk ? [{ name: 'Oat Milk', price: item.oatMilkPrice || 2 }] : []);
+      const itemKey = itemAddons.map(a => `${a.name}:${a.price}`).sort().join('|');
+      return itemKey === addonsKey;
+    });
 
     if (existingIndex > -1) {
       this.items[existingIndex].quantity += qty;
@@ -85,10 +115,11 @@ class CartState {
         chineseName: chineseName || '',
         category: category || '',
         basePrice: Number(basePrice.toFixed(2)),
-        oatMilk: Boolean(oatMilk),
-        oatMilkPrice: oatMilk ? Number(oatMilkPrice.toFixed(2)) : 0,
+        selectedAddons: addons,
+        oatMilk: hasOatMilk,
+        oatMilkPrice: resolvedOatMilkPrice,
         remark: cleanRemark,
-        unitPrice: Number(unitPrice.toFixed(2)),
+        unitPrice: unitPrice,
         quantity: qty,
         subtotal: Number((qty * unitPrice).toFixed(2))
       });

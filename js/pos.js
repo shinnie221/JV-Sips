@@ -8,7 +8,7 @@ import { getProducts } from './db.js';
 import { seedInitialMenu } from './seed.js';
 import { cart } from './cart.js';
 import { initPaymentController, openCheckout } from './payment.js';
-import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory } from './utils.js';
+import { formatRM, showToast, escapeHtml, getCategoryBadgeClass, sortProductsByCategory, groupProductsByCategory, getProductAddons } from './utils.js';
 import { initAuthHeader, onStaffAuthStateChanged } from './auth.js';
 
 let activeProducts = [];
@@ -18,7 +18,7 @@ let searchFilter = '';
 // Current customized item in modal
 let currentProduct = null;
 let currentCustomQty = 1;
-let currentCustomOatMilk = false;
+let currentCustomSelectedAddons = [];
 
 // DOM Elements
 const drinksGrid = document.getElementById('pos-drinks-grid');
@@ -57,10 +57,8 @@ const custBasePrice = document.getElementById('cust-base-price');
 const btnCustQtyMinus = document.getElementById('btn-cust-qty-minus');
 const btnCustQtyPlus = document.getElementById('btn-cust-qty-plus');
 const custQtyDisplay = document.getElementById('cust-qty-display');
-const custOatmilkSection = document.getElementById('cust-oatmilk-section');
-const custOatmilkCard = document.getElementById('cust-oatmilk-card');
-const custOatmilkCheckbox = document.getElementById('cust-oatmilk-checkbox');
-const custOatmilkSurcharge = document.getElementById('cust-oatmilk-surcharge');
+const custAddonsSection = document.getElementById('cust-addons-section');
+const custAddonsList = document.getElementById('cust-addons-list');
 const custRemarkInput = document.getElementById('cust-remark-input');
 const custQuickRemarks = document.getElementById('cust-quick-remarks');
 const custCalculatedSubtotal = document.getElementById('cust-calculated-subtotal');
@@ -154,20 +152,6 @@ function setupEventListeners() {
     updateCustomizerUI();
   });
 
-  // Oat Milk tick box in modal
-  custOatmilkCheckbox.addEventListener('change', () => {
-    currentCustomOatMilk = custOatmilkCheckbox.checked;
-    updateCustomizerUI();
-  });
-
-  custOatmilkCard.addEventListener('click', (e) => {
-    if (e.target !== custOatmilkCheckbox) {
-      custOatmilkCheckbox.checked = !custOatmilkCheckbox.checked;
-      currentCustomOatMilk = custOatmilkCheckbox.checked;
-      updateCustomizerUI();
-    }
-  });
-
   // Quick Remark Chips click
   if (custQuickRemarks) {
     custQuickRemarks.addEventListener('click', (e) => {
@@ -204,8 +188,7 @@ function setupEventListeners() {
       chineseName: currentProduct.chineseName,
       category: currentProduct.category,
       basePrice: currentProduct.price,
-      oatMilk: currentCustomOatMilk,
-      oatMilkPrice: currentProduct.oatMilkPrice || 2.00,
+      selectedAddons: [...currentCustomSelectedAddons],
       remark: remarkText,
       quantity: currentCustomQty
     });
@@ -296,7 +279,16 @@ function renderDrinksGrid() {
   drinksGrid.innerHTML = categoryGroups.map(group => {
     const cardsHtml = group.items.map(p => {
       const badgeClass = getCategoryBadgeClass(p.category);
-      const hasOatMilk = Boolean(p.allowOatMilk);
+      const addons = getProductAddons(p);
+      const hasAddons = addons.length > 0;
+      let addonIndicatorHtml = '';
+      if (hasAddons) {
+        if (addons.length === 1) {
+          addonIndicatorHtml = `<span class="pos-card-addon-indicator">+${escapeHtml(addons[0].name)} (+${formatRM(addons[0].price)})</span>`;
+        } else {
+          addonIndicatorHtml = `<span class="pos-card-addon-indicator">+${addons.length} Add-ons</span>`;
+        }
+      }
 
       return `
         <div class="pos-drink-card" data-id="${escapeHtml(p.id)}">
@@ -309,7 +301,7 @@ function renderDrinksGrid() {
           </div>
           <div class="pos-card-footer">
             <div class="pos-card-price">${formatRM(p.price)}</div>
-            ${hasOatMilk ? `<span class="pos-card-addon-indicator">Oat Milk +${formatRM(p.oatMilkPrice || 2)}</span>` : ''}
+            ${addonIndicatorHtml}
           </div>
         </div>
       `;
@@ -350,7 +342,7 @@ function renderDrinksGrid() {
 function openCustomizer(product) {
   currentProduct = product;
   currentCustomQty = 1;
-  currentCustomOatMilk = false;
+  currentCustomSelectedAddons = [];
 
   custDrinkName.textContent = product.name;
   custDrinkChinese.textContent = product.chineseName || '';
@@ -359,14 +351,55 @@ function openCustomizer(product) {
   custCategoryBadge.textContent = product.category;
   custCategoryBadge.className = `badge ${getCategoryBadgeClass(product.category)}`;
 
-  // Show or hide Oat Milk tick section based on product.allowOatMilk
-  if (product.allowOatMilk) {
-    custOatmilkSection.style.display = 'block';
-    custOatmilkCheckbox.checked = false;
-    custOatmilkSurcharge.textContent = `+${formatRM(product.oatMilkPrice || 2)}`;
+  // Populate dynamic add-on options configured for this product
+  const addons = getProductAddons(product);
+  if (addons.length > 0) {
+    custAddonsSection.style.display = 'block';
+    custAddonsList.innerHTML = addons.map((addon, index) => `
+      <div class="addon-toggle-card cust-addon-card" data-index="${index}" data-name="${escapeHtml(addon.name)}" data-price="${addon.price}">
+        <div class="addon-toggle-left">
+          <input type="checkbox" class="cust-addon-checkbox" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;">
+          <div>
+            <div class="addon-info-title">${escapeHtml(addon.name)}</div>
+            <div class="addon-info-subtitle">Add-on item</div>
+          </div>
+        </div>
+        <div class="addon-price-tag">+${formatRM(addon.price)}</div>
+      </div>
+    `).join('');
+
+    // Attach click and change listeners to addon cards
+    custAddonsList.querySelectorAll('.cust-addon-card').forEach(card => {
+      const checkbox = card.querySelector('.cust-addon-checkbox');
+      const addonName = card.dataset.name;
+      const addonPrice = parseFloat(card.dataset.price) || 0;
+
+      const toggleCard = () => {
+        const isSelected = checkbox.checked;
+        if (isSelected) {
+          card.classList.add('selected');
+          if (!currentCustomSelectedAddons.some(a => a.name.toLowerCase() === addonName.toLowerCase())) {
+            currentCustomSelectedAddons.push({ name: addonName, price: addonPrice });
+          }
+        } else {
+          card.classList.remove('selected');
+          currentCustomSelectedAddons = currentCustomSelectedAddons.filter(a => a.name.toLowerCase() !== addonName.toLowerCase());
+        }
+        updateCustomizerUI();
+      };
+
+      checkbox.addEventListener('change', toggleCard);
+
+      card.addEventListener('click', (e) => {
+        if (e.target !== checkbox) {
+          checkbox.checked = !checkbox.checked;
+          toggleCard();
+        }
+      });
+    });
   } else {
-    custOatmilkSection.style.display = 'none';
-    custOatmilkCheckbox.checked = false;
+    custAddonsSection.style.display = 'none';
+    custAddonsList.innerHTML = '';
   }
 
   // Reset Remark input and quick chips
@@ -382,18 +415,9 @@ function openCustomizer(product) {
 function updateCustomizerUI() {
   custQtyDisplay.textContent = currentCustomQty;
   
-  if (currentCustomOatMilk) {
-    custOatmilkCard.classList.add('selected');
-    custOatmilkCheckbox.checked = true;
-  } else {
-    custOatmilkCard.classList.remove('selected');
-    custOatmilkCheckbox.checked = false;
-  }
-
   if (currentProduct) {
-    const unitPrice = currentCustomOatMilk 
-      ? (currentProduct.price + (currentProduct.oatMilkPrice || 2)) 
-      : currentProduct.price;
+    const addonsTotal = currentCustomSelectedAddons.reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+    const unitPrice = currentProduct.price + addonsTotal;
     const itemSubtotal = unitPrice * currentCustomQty;
     custCalculatedSubtotal.textContent = `${formatRM(itemSubtotal)} (${currentCustomQty} × ${formatRM(unitPrice)})`;
   }
@@ -474,7 +498,9 @@ function renderCart(cartState) {
         <div class="cart-item-info">
           <div class="cart-item-title">${escapeHtml(item.name)}</div>
           ${item.chineseName ? `<div class="cart-item-subtitle">${escapeHtml(item.chineseName)}</div>` : ''}
-          ${item.oatMilk ? `<span class="cart-item-addon-tag">✓ Oat Milk (+${formatRM(item.oatMilkPrice)})</span>` : ''}
+          ${(item.selectedAddons && item.selectedAddons.length > 0)
+            ? `<div class="cart-item-addons-wrapper">${item.selectedAddons.map(a => `<span class="cart-item-addon-tag">✓ ${escapeHtml(a.name)} (+${formatRM(a.price)})</span>`).join('')}</div>`
+            : (item.oatMilk ? `<span class="cart-item-addon-tag">✓ Oat Milk (+${formatRM(item.oatMilkPrice)})</span>` : '')}
           ${item.remark ? `<div class="cart-item-remark">📝 ${escapeHtml(item.remark)}</div>` : ''}
         </div>
         <div>

@@ -5,7 +5,7 @@
  */
 
 import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
-import { sortProductsByCategory } from './utils.js';
+import { sortProductsByCategory, getProductAddons } from './utils.js';
 import { isStaffLoggedIn } from './auth.js';
 import { INITIAL_MENU } from './seed.js';
 
@@ -17,6 +17,59 @@ let firestoreModules = null;
 // Guest Sandbox LocalStorage keys (100% isolated from real cloud data)
 const LS_GUEST_PRODUCTS_KEY = 'jv_sips_guest_products';
 const LS_GUEST_SALES_KEY = 'jv_sips_guest_sales';
+const LS_PENDING_OPERATIONS_KEY = 'jv_sips_pending_ops';
+// Offline Queue Utilities
+function getPendingOperations() {
+  const raw = localStorage.getItem(LS_PENDING_OPERATIONS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function savePendingOperations(ops) {
+  localStorage.setItem(LS_PENDING_OPERATIONS_KEY, JSON.stringify(ops));
+}
+function enqueueOperation(op) {
+  const ops = getPendingOperations();
+  ops.push(op);
+  savePendingOperations(ops);
+}
+async function syncPendingOperations() {
+  if (!isStaffLoggedIn() || !isFirestoreReady) return;
+  const ops = getPendingOperations();
+  const remaining = [];
+  for (const op of ops) {
+    try {
+      switch (op.type) {
+        case 'addProduct':
+          await firestoreModules.addDoc(firestoreModules.collection(db, 'products'), op.payload);
+          break;
+        case 'updateProduct':
+          await firestoreModules.updateDoc(firestoreModules.doc(db, 'products', op.id), { ...op.payload, updatedAt: firestoreModules.serverTimestamp() });
+          break;
+        case 'deleteProduct':
+          await firestoreModules.deleteDoc(firestoreModules.doc(db, 'products', op.id));
+          break;
+        case 'toggleProductActive':
+          await firestoreModules.updateDoc(firestoreModules.doc(db, 'products', op.id), { active: op.active, updatedAt: firestoreModules.serverTimestamp() });
+          break;
+        case 'addSale':
+          await firestoreModules.addDoc(firestoreModules.collection(db, 'sales'), op.payload);
+          break;
+        default:
+          console.warn('Unknown pending operation type:', op.type);
+      }
+    } catch (e) {
+      console.error('Failed to sync operation', op, e);
+      remaining.push(op);
+    }
+  }
+  if (remaining.length > 0) {
+    savePendingOperations(remaining);
+  } else {
+    localStorage.removeItem(LS_PENDING_OPERATIONS_KEY);
+  }
+}
+window.addEventListener('online', () => {
+  syncPendingOperations();
+});
 
 /**
  * Initialize Firestore
@@ -46,9 +99,13 @@ export async function initDatabase() {
       const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       db = getFirestore(app);
       firestoreModules = { collection, doc, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp };
+
       isFirestoreReady = true;
       updateHeaderStatus(true);
+  // After establishing Firestore, attempt to sync any pending offline operations
+  syncPendingOperations();
       return { isFirestore: true, db };
+
     } catch (err) {
       console.warn('⚠️ Firestore init fallback to sandbox mode:', err);
       isFirestoreReady = false;
@@ -102,7 +159,8 @@ export async function getProducts(activeOnly = false) {
         const snapshot = await getDocs(q);
         const list = [];
         snapshot.forEach(docSnap => {
-          list.push({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          list.push({ id: docSnap.id, ...data, addons: getProductAddons(data) });
         });
         if (list.length > 0) {
           return sortProductsByCategory(list);
@@ -110,11 +168,13 @@ export async function getProducts(activeOnly = false) {
 
         // If Firestore is completely empty on initial staff run, seed directly into Firestore
         for (const item of INITIAL_MENU) {
+          const cleanAddons = getProductAddons(item);
           await addDoc(colRef, {
             name: item.name,
             chineseName: item.chineseName || '',
             category: item.category,
             price: Number(parseFloat(item.price).toFixed(2)),
+            addons: cleanAddons,
             allowOatMilk: Boolean(item.allowOatMilk),
             oatMilkPrice: Number(parseFloat(item.oatMilkPrice || 0).toFixed(2)),
             active: Boolean(item.active),
@@ -126,7 +186,8 @@ export async function getProducts(activeOnly = false) {
         const newSnap = await getDocs(q);
         const seededList = [];
         newSnap.forEach(docSnap => {
-          seededList.push({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          seededList.push({ id: docSnap.id, ...data, addons: getProductAddons(data) });
         });
         return sortProductsByCategory(seededList);
       } catch (err) {
@@ -142,13 +203,28 @@ export async function getProducts(activeOnly = false) {
 
 export async function addProduct(productData) {
   await initDatabase();
+
+  const cleanAddons = Array.isArray(productData.addons)
+    ? productData.addons
+        .filter(a => a && typeof a.name === 'string' && a.name.trim().length > 0)
+        .map(a => ({
+          name: a.name.trim(),
+          price: Number((parseFloat(a.price) || 0).toFixed(2))
+        }))
+    : (productData.allowOatMilk ? [{ name: 'Oat Milk', price: Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) }] : []);
+
+  const hasOatMilk = cleanAddons.some(a => a.name.toLowerCase().includes('oat')) || Boolean(productData.allowOatMilk);
+  const oatMilkItem = cleanAddons.find(a => a.name.toLowerCase().includes('oat'));
+  const oatMilkPrice = oatMilkItem ? oatMilkItem.price : (productData.allowOatMilk ? Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) : 0);
+
   const productPayload = {
     name: productData.name.trim(),
     chineseName: productData.chineseName ? productData.chineseName.trim() : '',
     category: productData.category.trim(),
     price: Number(parseFloat(productData.price).toFixed(2)),
-    allowOatMilk: Boolean(productData.allowOatMilk),
-    oatMilkPrice: productData.allowOatMilk ? Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) : 0,
+    addons: cleanAddons,
+    allowOatMilk: hasOatMilk,
+    oatMilkPrice: oatMilkPrice,
     active: productData.active !== undefined ? Boolean(productData.active) : true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -171,19 +247,36 @@ export async function addProduct(productData) {
     };
     products.push(newProduct);
     saveGuestSandboxProducts(products);
+    // Queue operation for later sync when online
+    enqueueOperation({ type: 'addProduct', payload: productPayload });
     return newProduct;
   }
 }
 
 export async function updateProduct(id, productData) {
   await initDatabase();
+
+  const cleanAddons = Array.isArray(productData.addons)
+    ? productData.addons
+        .filter(a => a && typeof a.name === 'string' && a.name.trim().length > 0)
+        .map(a => ({
+          name: a.name.trim(),
+          price: Number((parseFloat(a.price) || 0).toFixed(2))
+        }))
+    : (productData.allowOatMilk ? [{ name: 'Oat Milk', price: Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) }] : []);
+
+  const hasOatMilk = cleanAddons.some(a => a.name.toLowerCase().includes('oat')) || Boolean(productData.allowOatMilk);
+  const oatMilkItem = cleanAddons.find(a => a.name.toLowerCase().includes('oat'));
+  const oatMilkPrice = oatMilkItem ? oatMilkItem.price : (productData.allowOatMilk ? Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) : 0);
+
   const updatePayload = {
     name: productData.name.trim(),
     chineseName: productData.chineseName ? productData.chineseName.trim() : '',
     category: productData.category.trim(),
     price: Number(parseFloat(productData.price).toFixed(2)),
-    allowOatMilk: Boolean(productData.allowOatMilk),
-    oatMilkPrice: productData.allowOatMilk ? Number(parseFloat(productData.oatMilkPrice || 2).toFixed(2)) : 0,
+    addons: cleanAddons,
+    allowOatMilk: hasOatMilk,
+    oatMilkPrice: oatMilkPrice,
     active: Boolean(productData.active),
     updatedAt: new Date().toISOString()
   };
@@ -210,8 +303,11 @@ export async function updateProduct(id, productData) {
   if (index !== -1) {
     products[index] = { ...products[index], ...updatePayload };
     saveGuestSandboxProducts(products);
+    // Queue update for later sync
+    enqueueOperation({ type: 'updateProduct', id, payload: updatePayload });
     return products[index];
   }
+  // If not found, still return the payload
   return { id, ...updatePayload };
 }
 
@@ -233,6 +329,8 @@ export async function deleteProduct(id) {
   let products = getGuestSandboxProducts();
   products = products.filter(p => p.id !== id);
   saveGuestSandboxProducts(products);
+  // Queue delete for later sync
+  enqueueOperation({ type: 'deleteProduct', id });
   return true;
 }
 
@@ -260,8 +358,12 @@ export async function toggleProductActive(id, active) {
   if (prod) {
     prod.active = Boolean(active);
     saveGuestSandboxProducts(products);
+    // Queue toggle for later sync
+    enqueueOperation({ type: 'toggleProductActive', id, active: Boolean(active) });
     return true;
   }
+  // If not found, still enqueue for eventual consistency
+  enqueueOperation({ type: 'toggleProductActive', id, active: Boolean(active) });
   return true;
 }
 
@@ -304,6 +406,8 @@ export async function addSale(saleData) {
     };
     sales.unshift(newSale);
     saveGuestSandboxSales(sales);
+    // Queue sale for later sync
+    enqueueOperation({ type: 'addSale', payload: salePayload });
     return newSale;
   }
 }
@@ -408,9 +512,15 @@ function getGuestSandboxProducts(activeOnly = false) {
     if (!list || list.length === 0) {
       list = INITIAL_MENU.map((item, i) => ({
         id: 'sandbox_seed_' + (i + 1),
-        ...item
+        ...item,
+        addons: getProductAddons(item)
       }));
       saveGuestSandboxProducts(list);
+    } else {
+      list = list.map(item => ({
+        ...item,
+        addons: getProductAddons(item)
+      }));
     }
 
     const filtered = activeOnly ? list.filter(p => p.active !== false) : list;

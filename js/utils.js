@@ -235,4 +235,30 @@ export function groupProductsByCategory(products) {
   return Array.from(groupsMap.values());
 }
 
+/**
+ * Extract normalized addons array from a product
+ * Supports both modern addons array and legacy allowOatMilk field
+ * @param {Object} product
+ * @returns {Array<{name: string, price: number}>}
+ */
+export function getProductAddons(product) {
+  if (!product) return [];
+  if (Array.isArray(product.addons) && product.addons.length > 0) {
+    return product.addons
+      .filter(a => a && typeof a.name === 'string' && a.name.trim().length > 0)
+      .map(a => ({
+        name: a.name.trim(),
+        price: Number((parseFloat(a.price) || 0).toFixed(2))
+      }));
+  }
+  if (product.allowOatMilk) {
+    return [{
+      name: 'Oat Milk',
+      price: Number((parseFloat(product.oatMilkPrice !== undefined ? product.oatMilkPrice : 2)).toFixed(2))
+    }];
+  }
+  return [];
+}
+
+
 

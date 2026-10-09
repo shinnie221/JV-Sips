@@ -206,19 +206,18 @@
           </div>
         </div>
 
-        <!-- Oat Milk Tick Section (Conditionally visible for milk drinks) -->
-        <div id="cust-oatmilk-section" class="form-group" style="display: none;">
-          <div class="modal-section-label">Milk Option</div>
-          <div id="cust-oatmilk-card" class="addon-toggle-card">
-            <div class="addon-toggle-left">
-              <input type="checkbox" id="cust-oatmilk-checkbox" style="width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer;">
-              <div>
-                <div class="addon-info-title">Oat Milk Add-on</div>
-                <div class="addon-info-subtitle">Upgrade from fresh milk to creamy Oat Milk</div>
-              </div>
-            </div>
-            <div id="cust-oatmilk-surcharge" class="addon-price-tag">+RM 2.00</div>
+        <!-- Add-on Options Section (Conditionally visible when product has add-ons) -->
+        <div id="cust-addons-section" class="form-group" style="display: none;">
+          <div class="modal-section-label">Add-on Options</div>
+          <div id="cust-addons-list" class="cust-addons-list">
+            <!-- Dynamically populated add-on toggle cards -->
           </div>
+        </div>
+        <!-- Hidden legacy oat milk fallback container -->
+        <div id="cust-oatmilk-section" style="display: none;">
+          <input type="checkbox" id="cust-oatmilk-checkbox">
+          <div id="cust-oatmilk-card"></div>
+          <div id="cust-oatmilk-surcharge"></div>
         </div>
 
         <!-- Remark / Special Notes Section -->
@@ -323,6 +322,7 @@
             <span style="color:var(--text-muted);">Payment Method:</span>
             <span id="receipt-method" style="font-weight:600;">Cash</span>
           </div>
+          <div id="receipt-items-list" style="margin-top: 10px; margin-bottom: 10px; max-height: 120px; overflow-y: auto; font-size: 0.84rem; border-top: 1px dashed var(--border-color); border-bottom: 1px dashed var(--border-color); padding: 8px 0;"></div>
           <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
             <span style="color:var(--text-muted);">Total Paid:</span>
             <span id="receipt-total" style="font-weight:800; color:var(--primary-dark); font-size:1.1rem;">RM 0.00</span>

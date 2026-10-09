@@ -569,6 +569,24 @@
   margin-bottom: 24px;
 }
 
+/* Customizer Add-on Options List */
+.cust-addons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cust-addons-list .addon-toggle-card {
+  padding: 10px 14px;
+}
+
+.cart-item-addons-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
 .qty-btn-large {
   width: 44px;
   height: 44px;
