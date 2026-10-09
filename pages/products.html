@@ -166,14 +166,26 @@
             </div>
             
             <div class="addon-quick-suggestions">
-              <span class="addon-quick-label">Quick Suggestions (Click to Add):</span>
-              <div class="addon-preset-chips">
-                <button type="button" class="preset-addon-chip" data-name="Oat Milk" data-price="2.00">+ Oat Milk (RM 2.00)</button>
-                <button type="button" class="preset-addon-chip" data-name="Pearls" data-price="1.50">+ Pearls (RM 1.50)</button>
-                <button type="button" class="preset-addon-chip" data-name="Coconut Jelly" data-price="1.50">+ Coconut Jelly (RM 1.50)</button>
-                <button type="button" class="preset-addon-chip" data-name="Cheese Foam" data-price="2.00">+ Cheese Foam (RM 2.00)</button>
-                <button type="button" class="preset-addon-chip" data-name="Pudding" data-price="1.50">+ Pudding (RM 1.50)</button>
-                <button type="button" class="preset-addon-chip" data-name="Grass Jelly" data-price="1.50">+ Grass Jelly (RM 1.50)</button>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span class="addon-quick-label" style="margin-bottom: 0;">Quick Suggestions (Click to Add):</span>
+                <button type="button" id="btn-toggle-add-preset" class="btn-text-preset" title="Add a custom quick suggestion preset">
+                  + New Suggestion
+                </button>
+              </div>
+
+              <!-- Inline Box to Add a Custom Quick Suggestion -->
+              <div id="new-preset-box" class="new-preset-box" style="display: none;">
+                <input type="text" id="input-new-preset-name" class="form-input form-input-sm" placeholder="Name (e.g. Aloe Vera)">
+                <div class="preset-price-input-wrapper">
+                  <span class="preset-price-prefix">+RM</span>
+                  <input type="number" id="input-new-preset-price" class="form-input form-input-sm" placeholder="1.50" step="0.50" min="0" value="1.50">
+                </div>
+                <button type="button" id="btn-save-new-preset" class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.78rem;">Save</button>
+                <button type="button" id="btn-cancel-new-preset" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.78rem;">Cancel</button>
+              </div>
+
+              <div id="addon-preset-chips" class="addon-preset-chips">
+                <!-- Dynamically populated from saved presets -->
               </div>
             </div>
 

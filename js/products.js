@@ -37,8 +37,111 @@ const addonToggleBox = document.getElementById('addon-toggle-box');
 const addonManagerGroup = document.getElementById('addon-manager-group');
 const btnAddAddonRow = document.getElementById('btn-add-addon-row');
 const addonItemsContainer = document.getElementById('addon-items-container');
+const addonPresetChipsContainer = document.getElementById('addon-preset-chips');
+const btnToggleAddPreset = document.getElementById('btn-toggle-add-preset');
+const newPresetBox = document.getElementById('new-preset-box');
+const inputNewPresetName = document.getElementById('input-new-preset-name');
+const inputNewPresetPrice = document.getElementById('input-new-preset-price');
+const btnSaveNewPreset = document.getElementById('btn-save-new-preset');
+const btnCancelNewPreset = document.getElementById('btn-cancel-new-preset');
 const checkActive = document.getElementById('prod-active');
 const activeLabel = document.getElementById('prod-active-label');
+
+// Quick Suggestions Storage
+const LS_ADDON_PRESETS_KEY = 'jv_sips_addon_presets';
+const DEFAULT_ADDON_PRESETS = [
+  { name: 'Oat Milk', price: 2.00 },
+  { name: 'Pearls', price: 1.50 },
+  { name: 'Coconut Jelly', price: 1.50 },
+  { name: 'Cheese Foam', price: 2.00 },
+  { name: 'Pudding', price: 1.50 },
+  { name: 'Grass Jelly', price: 1.50 }
+];
+
+function getAddonPresets() {
+  try {
+    const raw = localStorage.getItem(LS_ADDON_PRESETS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn(e);
+  }
+  return [...DEFAULT_ADDON_PRESETS];
+}
+
+function saveAddonPresets(presets) {
+  localStorage.setItem(LS_ADDON_PRESETS_KEY, JSON.stringify(presets));
+}
+
+function renderAddonPresets() {
+  if (!addonPresetChipsContainer) return;
+  const presets = getAddonPresets();
+
+  if (presets.length === 0) {
+    addonPresetChipsContainer.innerHTML = `
+      <span style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">No quick suggestions yet. Click "+ New Suggestion" to add one!</span>
+    `;
+    return;
+  }
+
+  addonPresetChipsContainer.innerHTML = presets.map((p, index) => `
+    <div class="preset-addon-chip" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
+      <span class="preset-chip-text">+ ${escapeHtml(p.name)} (RM ${Number(p.price).toFixed(2)})</span>
+      <button type="button" class="btn-delete-preset" title="Delete suggestion" data-index="${index}" data-name="${escapeHtml(p.name)}">&times;</button>
+    </div>
+  `).join('');
+
+  // Attach chip click listeners (apply to drink or delete)
+  addonPresetChipsContainer.querySelectorAll('.preset-addon-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      // If clicking the delete button, remove from quick suggestions
+      const btnDelete = e.target.closest('.btn-delete-preset');
+      if (btnDelete) {
+        e.stopPropagation();
+        const nameToDelete = btnDelete.dataset.name;
+        const currentPresets = getAddonPresets();
+        const updated = currentPresets.filter(item => item.name.toLowerCase() !== nameToDelete.toLowerCase());
+        saveAddonPresets(updated);
+        renderAddonPresets();
+        showToast(`Removed "${nameToDelete}" from quick suggestions`, 'info', 2000);
+        return;
+      }
+
+      const name = chip.dataset.name;
+      const price = chip.dataset.price;
+      applyPresetToDrink(name, price);
+    });
+  });
+}
+
+function applyPresetToDrink(name, price) {
+  if (!checkAllowAddon.checked) {
+    checkAllowAddon.checked = true;
+    toggleAddonManager(true);
+  }
+
+  const existingInputs = Array.from(addonItemsContainer.querySelectorAll('.addon-name-input'));
+  const found = existingInputs.find(inp => inp.value.trim().toLowerCase() === name.toLowerCase());
+  if (found) {
+    found.focus();
+    showToast(`"${name}" is already in this drink's add-on list.`, 'info');
+    return;
+  }
+
+  // If there's an existing blank single row, fill it
+  if (existingInputs.length === 1 && !existingInputs[0].value.trim()) {
+    existingInputs[0].value = name;
+    const row = existingInputs[0].closest('.addon-row');
+    const priceInput = row.querySelector('.addon-price-input');
+    if (priceInput) priceInput.value = parseFloat(price).toFixed(2);
+  } else {
+    const row = createAddonRow(name, price);
+    addonItemsContainer.appendChild(row);
+  }
+  showToast(`Added ${name} (+RM ${parseFloat(price).toFixed(2)}) to drink`, 'success', 2000);
+}
 
 // Delete Modal Elements
 const deleteModal = document.getElementById('delete-modal');
@@ -51,6 +154,7 @@ const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 document.addEventListener('DOMContentLoaded', async () => {
   initAuthHeader();
   setupEventListeners();
+  renderAddonPresets();
   await loadAndRenderProducts();
 
   // Re-render when auth resolves or toggles between Guest and Staff
@@ -96,37 +200,85 @@ function setupEventListeners() {
     if (nameInput) nameInput.focus();
   });
 
-  // Preset chips click
-  document.querySelectorAll('.preset-addon-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const name = chip.dataset.name;
-      const price = chip.dataset.price;
-      if (!checkAllowAddon.checked) {
-        checkAllowAddon.checked = true;
-        toggleAddonManager(true);
-      }
-      
-      const existingInputs = Array.from(addonItemsContainer.querySelectorAll('.addon-name-input'));
-      const found = existingInputs.find(inp => inp.value.trim().toLowerCase() === name.toLowerCase());
-      if (found) {
-        found.focus();
-        showToast(`"${name}" is already in the list.`, 'info');
-        return;
-      }
-
-      // If there's an existing blank single row, fill it
-      if (existingInputs.length === 1 && !existingInputs[0].value.trim()) {
-        existingInputs[0].value = name;
-        const row = existingInputs[0].closest('.addon-row');
-        const priceInput = row.querySelector('.addon-price-input');
-        if (priceInput) priceInput.value = parseFloat(price).toFixed(2);
+  // Toggle New Suggestion Box
+  if (btnToggleAddPreset) {
+    btnToggleAddPreset.addEventListener('click', () => {
+      const isVisible = newPresetBox.style.display !== 'none';
+      if (isVisible) {
+        newPresetBox.style.display = 'none';
       } else {
-        const row = createAddonRow(name, price);
-        addonItemsContainer.appendChild(row);
+        newPresetBox.style.display = 'flex';
+        inputNewPresetName.value = '';
+        inputNewPresetPrice.value = '1.50';
+        inputNewPresetName.focus();
       }
-      showToast(`Added ${name} (+RM ${parseFloat(price).toFixed(2)})`, 'success', 2000);
     });
-  });
+  }
+
+  if (btnCancelNewPreset) {
+    btnCancelNewPreset.addEventListener('click', () => {
+      newPresetBox.style.display = 'none';
+    });
+  }
+
+  const handleSaveNewPreset = () => {
+    const name = inputNewPresetName.value.trim();
+    const price = parseFloat(inputNewPresetPrice.value);
+
+    if (!name) {
+      showToast('Please enter a name for the quick suggestion.', 'warning');
+      inputNewPresetName.focus();
+      return;
+    }
+
+    if (isNaN(price) || price < 0) {
+      showToast('Please enter a valid price (>= 0).', 'warning');
+      inputNewPresetPrice.focus();
+      return;
+    }
+
+    const currentPresets = getAddonPresets();
+    const existingIndex = currentPresets.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+    if (existingIndex > -1) {
+      currentPresets[existingIndex].price = Number(price.toFixed(2));
+      showToast(`Updated quick suggestion "${name}" to RM ${price.toFixed(2)}`, 'success');
+    } else {
+      currentPresets.push({
+        name,
+        price: Number(price.toFixed(2))
+      });
+      showToast(`Saved "${name}" to quick suggestions!`, 'success');
+    }
+
+    saveAddonPresets(currentPresets);
+    renderAddonPresets();
+    applyPresetToDrink(name, price);
+
+    newPresetBox.style.display = 'none';
+    inputNewPresetName.value = '';
+  };
+
+  if (btnSaveNewPreset) {
+    btnSaveNewPreset.addEventListener('click', handleSaveNewPreset);
+  }
+
+  if (inputNewPresetName) {
+    inputNewPresetName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        inputNewPresetPrice.focus();
+      }
+    });
+  }
+
+  if (inputNewPresetPrice) {
+    inputNewPresetPrice.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveNewPreset();
+      }
+    });
+  }
 
   // Active checkbox label change
   checkActive.addEventListener('change', () => {
